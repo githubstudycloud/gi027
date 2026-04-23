@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: enterprise-platform
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Enterprise Spring Boot 4.x baseline framework
+    version: 1.0.0-SNAPSHOT
+
+platform:
+  security:
+    basic:
+      username: platform-admin
+      password: changeit
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
