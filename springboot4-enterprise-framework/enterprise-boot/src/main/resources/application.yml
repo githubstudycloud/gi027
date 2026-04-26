@@ -1,6 +1,19 @@
 spring:
   application:
     name: enterprise-platform
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:demo-key}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.2
+      embedding:
+        options:
+          model: text-embedding-3-small
+      moderation:
+        options:
+          model: text-moderation-latest
 
 server:
   port: 8080
@@ -25,6 +38,17 @@ platform:
     basic:
       username: platform-admin
       password: changeit
+  ai:
+    default-system-prompt: |
+      你是企业级 Spring Boot 4.x 平台内置 AI 助手。
+      你需要优先基于企业知识库、系统工具和上下文信息回答问题。
+      如果用户问题缺少事实依据，请明确说明不确定性，不要编造系统能力或接口。
+    rag-top-k: 4
+    rag-store-file: data/ai/vector-store.json
+    image-model: gpt-image-1
+    transcription-model: gpt-4o-mini-transcribe
+    speech-model: gpt-4o-mini-tts
+    speech-voice: alloy
 
 logging:
   pattern:

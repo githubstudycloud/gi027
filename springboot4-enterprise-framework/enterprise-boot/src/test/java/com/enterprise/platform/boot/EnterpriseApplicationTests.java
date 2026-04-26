@@ -29,6 +29,15 @@ class EnterpriseApplicationTests {
     }
 
     @Test
+    void aiCapabilitiesShouldBeAccessibleWithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/api/v1/ai/capabilities"))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("X-Trace-Id"))
+                .andExpect(jsonPath("$.code").value("00000"))
+                .andExpect(jsonPath("$.data.mcpReady").value(true));
+    }
+
+    @Test
     void statusEndpointShouldRequireAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/system/status"))
                 .andExpect(status().isUnauthorized());
