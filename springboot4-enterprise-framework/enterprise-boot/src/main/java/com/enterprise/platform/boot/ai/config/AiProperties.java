@@ -24,6 +24,8 @@ public class AiProperties {
 
     private String speechVoice = "alloy";
 
+    private Governance governance = new Governance();
+
     public String getDefaultSystemPrompt() {
         return defaultSystemPrompt;
     }
@@ -78,5 +80,46 @@ public class AiProperties {
 
     public void setSpeechVoice(String speechVoice) {
         this.speechVoice = speechVoice;
+    }
+
+    public Governance getGovernance() {
+        return governance;
+    }
+
+    public void setGovernance(Governance governance) {
+        this.governance = governance;
+    }
+
+    public static class Governance {
+
+        private boolean auditEnabled = true;
+
+        private boolean rateLimitEnabled = true;
+
+        private int requestsPerMinute = 60;
+
+        public boolean isAuditEnabled() {
+            return auditEnabled;
+        }
+
+        public void setAuditEnabled(boolean auditEnabled) {
+            this.auditEnabled = auditEnabled;
+        }
+
+        public boolean isRateLimitEnabled() {
+            return rateLimitEnabled;
+        }
+
+        public void setRateLimitEnabled(boolean rateLimitEnabled) {
+            this.rateLimitEnabled = rateLimitEnabled;
+        }
+
+        public int getRequestsPerMinute() {
+            return requestsPerMinute;
+        }
+
+        public void setRequestsPerMinute(int requestsPerMinute) {
+            this.requestsPerMinute = requestsPerMinute;
+        }
     }
 }

@@ -1,0 +1,32 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+platform:
+  security:
+    basic:
+      username: ${PLATFORM_BASIC_USERNAME}
+      password: ${PLATFORM_BASIC_PASSWORD}
+  ai:
+    rag-store-file: ${PLATFORM_AI_RAG_STORE_FILE:data/ai/vector-store.json}
+    governance:
+      audit-enabled: true
+      rate-limit-enabled: true
+      requests-per-minute: ${PLATFORM_AI_REQUESTS_PER_MINUTE:30}
+
+logging:
+  level:
+    root: INFO
+    AI_AUDIT: INFO

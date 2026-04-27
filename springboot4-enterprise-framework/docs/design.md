@@ -452,6 +452,9 @@ External Providers / Storage
 - `transcription-model`：转写模型
 - `speech-model`：语音合成模型
 - `speech-voice`：默认音色
+- `governance.audit-enabled`：是否启用 AI 审计日志
+- `governance.rate-limit-enabled`：是否启用 AI 接口限流
+- `governance.requests-per-minute`：AI 接口每分钟请求阈值
 
 ### 10.3 配置治理建议
 
@@ -459,6 +462,20 @@ External Providers / Storage
 - 按环境区分模型选型，开发环境用轻量模型，生产环境按场景分配
 - 对语音、图像等高成本能力增加额度配置
 - 对知识库存储路径和数据目录做好备份与权限隔离
+
+### 10.4 环境拆分策略
+
+当前已提供以下配置文件：
+
+- `application.yml`：公共默认配置
+- `application-dev.yml`：开发环境配置
+- `application-prod.yml`：生产环境配置
+
+策略说明：
+
+- 开发环境允许较宽松的限流阈值，便于联调
+- 生产环境通过环境变量注入 `OPENAI_API_KEY` 和 Basic Auth 凭据
+- 生产环境默认收敛健康检查暴露细节，并保留 AI 审计日志
 
 ## 11. API 设计规范
 
@@ -569,6 +586,8 @@ External Providers / Storage
 - 对用户输入和模型输出增加脱敏与合规检查
 - 对知识库内容建立版本管理和回滚机制
 - 对工具调用结果做可观测性埋点
+- 对 AI 接口启用基于主体或来源地址的限流策略
+- 将 `AI_AUDIT` 日志接入集中日志平台进行审计检索和告警
 
 ## 16. 扩展路线
 

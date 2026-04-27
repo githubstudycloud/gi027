@@ -1,0 +1,24 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+platform:
+  security:
+    basic:
+      username: platform-dev
+      password: changeit-dev
+  ai:
+    governance:
+      audit-enabled: true
+      rate-limit-enabled: true
+      requests-per-minute: 120
+
+logging:
+  level:
+    AI_AUDIT: INFO

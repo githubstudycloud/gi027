@@ -19,7 +19,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException exception,
                                                                      HttpServletRequest request) {
-        return ResponseEntity.badRequest()
+        HttpStatus status = exception.getErrorCode() == ErrorCode.RATE_LIMITED
+                ? HttpStatus.TOO_MANY_REQUESTS
+                : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status)
                 .body(ApiResponse.failure(exception.getErrorCode(), exception.getMessage(), resolveTraceId(request)));
     }
 

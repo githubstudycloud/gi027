@@ -49,6 +49,10 @@ platform:
     transcription-model: gpt-4o-mini-transcribe
     speech-model: gpt-4o-mini-tts
     speech-voice: alloy
+    governance:
+      audit-enabled: true
+      rate-limit-enabled: true
+      requests-per-minute: 60
 
 logging:
   pattern:

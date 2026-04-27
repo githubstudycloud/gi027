@@ -98,6 +98,10 @@ platform:
     transcription-model: gpt-4o-mini-transcribe
     speech-model: gpt-4o-mini-tts
     speech-voice: alloy
+    governance:
+      audit-enabled: true
+      rate-limit-enabled: true
+      requests-per-minute: 60
 ```
 
 说明：
@@ -105,6 +109,27 @@ platform:
 - `OPENAI_API_KEY` 未设置时，应用仍可启动，但真正调用模型能力会失败
 - `platform.ai.rag-store-file` 为本地向量库存储路径
 - `platform.ai.default-system-prompt` 控制平台级统一系统提示词
+- `platform.ai.governance.requests-per-minute` 控制 AI 接口每分钟请求阈值
+- `AI_AUDIT` 日志记录 AI 接口访问主体、路径、状态码、耗时和来源地址
+
+## 环境配置
+
+框架已补充环境拆分配置：
+
+- `application.yml`：公共默认配置
+- `application-dev.yml`：开发环境配置，适合本地联调
+- `application-prod.yml`：生产环境配置，强制通过环境变量注入关键密钥和口令
+
+示例：
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="prod"
+$env:OPENAI_API_KEY="your-api-key"
+$env:PLATFORM_BASIC_USERNAME="platform-admin"
+$env:PLATFORM_BASIC_PASSWORD="replace-with-strong-password"
+$env:PLATFORM_AI_REQUESTS_PER_MINUTE="30"
+./mvnw -pl enterprise-boot spring-boot:run
+```
 
 ## AI 接口清单
 
