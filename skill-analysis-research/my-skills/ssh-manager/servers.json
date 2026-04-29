@@ -1,0 +1,52 @@
+{
+  "servers": {
+    "web": {
+      "mcp": "ssh-mcp-128",
+      "description": "Web 服务器 (Nginx + PHP)",
+      "ip": "192.168.1.128",
+      "tags": ["web", "frontend", "nginx"],
+      "services": ["nginx", "php-fpm"],
+      "deploy_path": "/var/www/html",
+      "log_path": "/var/log/nginx"
+    },
+    "db": {
+      "mcp": "ssh-mcp-124",
+      "description": "数据库服务器 (MySQL)",
+      "ip": "192.168.1.124",
+      "tags": ["database", "mysql", "backend"],
+      "services": ["mysql"],
+      "data_path": "/var/lib/mysql",
+      "log_path": "/var/log/mysql"
+    },
+    "app": {
+      "mcp": "ssh-mcp-204",
+      "description": "应用服务器 (Node.js)",
+      "ip": "192.168.1.204",
+      "tags": ["app", "nodejs", "api", "backend"],
+      "services": ["pm2", "node"],
+      "deploy_path": "/var/www/api",
+      "log_path": "/var/log/app"
+    }
+  },
+  "groups": {
+    "all": ["web", "db", "app"],
+    "backend": ["db", "app"],
+    "frontend": ["web"],
+    "production": ["web", "db", "app"]
+  },
+  "aliases": {
+    "128": "web",
+    "124": "db",
+    "204": "app",
+    "nginx": "web",
+    "mysql": "db",
+    "node": "app"
+  },
+  "default_user": "ubuntu",
+  "settings": {
+    "parallel_execution": true,
+    "timeout": 30,
+    "retry": 2,
+    "log_commands": true
+  }
+}
