@@ -1,0 +1,22 @@
+﻿[
+    {
+        "rerunConclusion":  "Passed",
+        "fixAction":  "Add timeout and retry policy",
+        "rootCauseConclusion":  "Slow downstream service",
+        "fixConclusion":  "Mitigated",
+        "issueCategory":  "Stability",
+        "keyEvidence":  "P95 latency is 4.2s",
+        "issueSubcategory":  "Timeout",
+        "useCaseName":  "Login retry timeout"
+    },
+    {
+        "problemCategory":  "Correctness",
+        "rerunResult":  "Passed",
+        "rootCause":  "Key version mismatch",
+        "repairConclusion":  "Fixed",
+        "problemSubcategory":  "Signature",
+        "evidence":  "Gateway and service use different key versions",
+        "repairAction":  "Align key versions",
+        "caseName":  "Payment callback signature mismatch"
+    }
+]

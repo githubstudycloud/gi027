@@ -1,0 +1,12 @@
+{
+  "fields": {
+    "useCaseName": ["useCaseName", "caseName", "用例名称"],
+    "issueCategory": ["issueCategory", "problemCategory", "问题大类"],
+    "issueSubcategory": ["issueSubcategory", "problemSubcategory", "问题小类"],
+    "rootCauseConclusion": ["rootCauseConclusion", "rootCause", "根因诊断结论"],
+    "keyEvidence": ["keyEvidence", "evidence", "关键佐证信息"],
+    "fixAction": ["fixAction", "repairAction", "问题修复动作"],
+    "fixConclusion": ["fixConclusion", "repairConclusion", "问题修复结论"],
+    "rerunConclusion": ["rerunConclusion", "rerunResult", "用例重跑结论"]
+  }
+}

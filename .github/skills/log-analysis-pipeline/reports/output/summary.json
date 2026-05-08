@@ -1,0 +1,15 @@
+﻿{
+    "generatedAt":  "2026-05-09 07:29:23",
+    "totalFiles":  2,
+    "totalRecords":  4,
+    "totalGroups":  4,
+    "groupBy":  [
+                    "issueCategory",
+                    "issueSubcategory",
+                    "rootCauseConclusion"
+                ],
+    "files":  [
+                  "D:\\20260422\\.github\\skills\\log-analysis-pipeline\\tests\\fixtures\\sample-input-1.json",
+                  "D:\\20260422\\.github\\skills\\log-analysis-pipeline\\tests\\fixtures\\sample-input-2.txt"
+              ]
+}

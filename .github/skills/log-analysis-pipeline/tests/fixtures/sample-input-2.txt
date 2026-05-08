@@ -1,0 +1,17 @@
+﻿useCaseName: Order query intermittent failure
+issueCategory: Stability
+issueSubcategory: Network
+rootCauseConclusion: Network jitter
+keyEvidence: 3 connection resets
+fixAction: Enable keepalive in connection pool
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Profile update missing fields
+issueCategory: DataConsistency
+issueSubcategory: Mapping
+rootCauseConclusion: Missing DTO mapping
+keyEvidence: Trace comparison shows field not propagated
+fixAction: Add missing mapping and regression tests
+fixConclusion: Fixed
+rerunConclusion: Passed

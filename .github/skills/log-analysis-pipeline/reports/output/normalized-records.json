@@ -1,0 +1,46 @@
+﻿[
+    {
+        "rootCauseConclusion":  "Slow downstream service",
+        "issueCategory":  "Stability",
+        "fixAction":  "Add timeout and retry policy",
+        "keyEvidence":  "P95 latency is 4.2s",
+        "issueSubcategory":  "Timeout",
+        "useCaseName":  "Login retry timeout",
+        "fixConclusion":  "Mitigated",
+        "rerunConclusion":  "Passed",
+        "sourceFile":  "D:\\20260422\\.github\\skills\\log-analysis-pipeline\\tests\\fixtures\\sample-input-1.json"
+    },
+    {
+        "rootCauseConclusion":  "Key version mismatch",
+        "issueCategory":  "Correctness",
+        "fixAction":  "Align key versions",
+        "keyEvidence":  "Gateway and service use different key versions",
+        "issueSubcategory":  "Signature",
+        "useCaseName":  "Payment callback signature mismatch",
+        "fixConclusion":  "Fixed",
+        "rerunConclusion":  "Passed",
+        "sourceFile":  "D:\\20260422\\.github\\skills\\log-analysis-pipeline\\tests\\fixtures\\sample-input-1.json"
+    },
+    {
+        "rootCauseConclusion":  "Network jitter",
+        "issueCategory":  "Stability",
+        "fixAction":  "Enable keepalive in connection pool",
+        "keyEvidence":  "3 connection resets",
+        "issueSubcategory":  "Network",
+        "useCaseName":  "Order query intermittent failure",
+        "fixConclusion":  "Fixed",
+        "rerunConclusion":  "Passed",
+        "sourceFile":  "D:\\20260422\\.github\\skills\\log-analysis-pipeline\\tests\\fixtures\\sample-input-2.txt"
+    },
+    {
+        "rootCauseConclusion":  "Missing DTO mapping",
+        "issueCategory":  "DataConsistency",
+        "fixAction":  "Add missing mapping and regression tests",
+        "keyEvidence":  "Trace comparison shows field not propagated",
+        "issueSubcategory":  "Mapping",
+        "useCaseName":  "Profile update missing fields",
+        "fixConclusion":  "Fixed",
+        "rerunConclusion":  "Passed",
+        "sourceFile":  "D:\\20260422\\.github\\skills\\log-analysis-pipeline\\tests\\fixtures\\sample-input-2.txt"
+    }
+]
