@@ -1,0 +1,9 @@
+{
+  "name": "log-analysis-pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "analyze": "node ./scripts/run-skill.mjs",
+    "test": "node ./scripts/run-skill.mjs"
+  }
+}
