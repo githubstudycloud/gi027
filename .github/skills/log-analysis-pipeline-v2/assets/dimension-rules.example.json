@@ -1,5 +1,5 @@
 {
-  "groupBy": ["issueCategory", "issueSubcategory", "rootCauseConclusion"],
+  "groupBy": ["issueCategory", "issueSubcategory", "rootCauseConclusion", "caseResult", "caseErrorMessage"],
   "topN": 10,
   "synonyms": {
     "timeout": ["超时", "请求超时", "timeout"],

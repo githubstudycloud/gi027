@@ -7,9 +7,20 @@ user-invocable: true
 
 # 日志分析汇总助手 v2（高性能版）
 
-行为与 [log-analysis-pipeline](../log-analysis-pipeline/SKILL.md) 完全等价：
-解析 JSON/TXT → 字段映射 → 按 `问题大类 / 问题小类 / 根因诊断结论` 聚类 →
-渲染单表多行的 Markdown → 输出 normalized JSON / summary JSON。
+行为与 [log-analysis-pipeline](../log-analysis-pipeline/SKILL.md) 基本等价，并增强了结构化场景：
+解析 JSON/TXT → 字段映射（支持字段名演进/别名）→ 按 `问题大类 / 问题小类 / 根因诊断结论`（可追加执行字段）聚类 →
+渲染单表多行的 Markdown + 执行信息聚类表 → 输出 normalized JSON / summary JSON。
+
+重点适配字段（优先）：
+- 顶层：`case_name`、`problem_category`、`root_case_conclusion`、`fix_action`、`rerun_result`、`analysis_time`
+- 嵌套：`version_info.{device_sn,device_type,platform_version,hy_version}`
+- 嵌套：`case_execution_info.{case_name,begin_time,end_time,duration,result,error_message}`
+- 嵌套数组：`key_evdence[]`（每项支持 `reference_doc` + `log_match`）
+
+输入假设增强：
+- 支持 JSON 和 TXT 成对输入（通常同名不同后缀），且每个文件仅 1 个用例。
+- 当检测到成对同名 JSON/TXT 且都只含 1 条时，会自动合并为 1 条标准化记录（优先保留 JSON 的丰富字段）。
+- 对字段名大小写、下划线/驼峰差异进行容错匹配，便于后续字段改名或新增。
 
 ## 与 v1 的差异（性能优化点）
 1. **alias 扁平化查表**：将 `{canonical: [aliases…]}` 在加载期一次性翻成
@@ -50,6 +61,36 @@ user-invocable: true
 4. 渲染 Markdown（单表 + `<br>` 多行单元格）
 5. 生成测试 + 性能样例（10 / 20 / 200 / 1000 / 5000）
 6. 与 v1 对比：执行 [scripts/benchmark.py](./scripts/benchmark.py)
+
+## 结构化输入示例（单用例）
+
+```json
+{
+   "case_name": "Login-Timeout-001",
+   "problem_category": "Network",
+   "root_case_conclusion": "Upstream gateway timeout",
+   "key_evdence": [
+      {"reference_doc": "gw-logs-20260509.txt", "log_match": "504 Gateway Timeout"}
+   ],
+   "fix_action": "Increase upstream timeout to 15s",
+   "rerun_result": "PASS",
+   "analysis_time": "2026-05-09 10:01:02",
+   "version_info": {
+      "device_sn": "SN-001",
+      "device_type": "edge-gateway",
+      "platform_version": "4.0.1",
+      "hy_version": "2.3.0"
+   },
+   "case_execution_info": {
+      "case_name": "Login-Timeout-001",
+      "begin_time": "2026-05-09 10:00:00",
+      "end_time": "2026-05-09 10:00:12",
+      "duration": "12s",
+      "result": "FAIL",
+      "error_message": "HTTP 504"
+   }
+}
+```
 
 ## 平台优先级 & 兜底
 - Windows：`scripts/run-skill-tests.ps1` → Python

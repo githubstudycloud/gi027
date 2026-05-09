@@ -42,14 +42,27 @@ _BLOCK_SPLIT_RE = re.compile(r"(?:\r?\n){2,}")
 
 def default_field_map() -> dict[str, list[str]]:
     return {
-        "useCaseName": ["useCaseName", "caseName", "用例名称"],
-        "issueCategory": ["issueCategory", "problemCategory", "问题大类"],
-        "issueSubcategory": ["issueSubcategory", "problemSubcategory", "问题小类"],
-        "rootCauseConclusion": ["rootCauseConclusion", "rootCause", "根因诊断结论"],
-        "keyEvidence": ["keyEvidence", "evidence", "关键佐证信息"],
+        "useCaseName": ["useCaseName", "caseName", "case_name", "用例名称", "case_execution_info.case_name"],
+        "issueCategory": ["issueCategory", "problemCategory", "problem_category", "问题大类"],
+        "issueSubcategory": ["issueSubcategory", "problemSubcategory", "problem_subcategory", "问题小类"],
+        "rootCauseConclusion": ["rootCauseConclusion", "rootCause", "root_case_conclusion", "根因诊断结论"],
+        "keyEvidence": [
+            "keyEvidence", "evidence", "key_evidence", "key_evdence", "关键佐证信息",
+            "key_evdence.reference_doc", "key_evdence.log_match", "key_evidence.reference_doc", "key_evidence.log_match"
+        ],
         "fixAction": ["fixAction", "repairAction", "问题修复动作"],
         "fixConclusion": ["fixConclusion", "repairConclusion", "问题修复结论"],
-        "rerunConclusion": ["rerunConclusion", "rerunResult", "用例重跑结论"],
+        "rerunConclusion": ["rerunConclusion", "rerunResult", "用例重跑结论", "rerun_result"],
+        "analysisTime": ["analysisTime", "analysis_time", "分析时间"],
+        "deviceSn": ["deviceSn", "device_sn", "version_info.device_sn", "设备SN"],
+        "deviceType": ["deviceType", "device_type", "version_info.device_type", "设备类型"],
+        "platformVersion": ["platformVersion", "platform_version", "version_info.platform_version", "平台版本"],
+        "hyVersion": ["hyVersion", "hy_version", "version_info.hy_version", "HY版本"],
+        "caseBeginTime": ["caseBeginTime", "begin_time", "case_execution_info.begin_time", "开始时间"],
+        "caseEndTime": ["caseEndTime", "end_time", "case_execution_info.end_time", "结束时间"],
+        "caseDuration": ["caseDuration", "duration", "case_execution_info.duration", "耗时"],
+        "caseResult": ["caseResult", "result", "case_execution_info.result", "执行结果"],
+        "caseErrorMessage": ["caseErrorMessage", "error_message", "case_execution_info.error_message", "错误信息"],
     }
 
 
@@ -135,6 +148,17 @@ def _flatten_alias_table(field_map: dict[str, list[str]]) -> tuple[dict[str, str
     return table, canonicals
 
 
+def _normalize_key_name(name: str) -> str:
+    return "".join(ch for ch in name.lower() if ch.isalnum())
+
+
+def _build_normalized_alias_table(alias_table: dict[str, str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for alias, canonical in alias_table.items():
+        out.setdefault(_normalize_key_name(alias), canonical)
+    return out
+
+
 def load_field_map(path: Path | None) -> dict[str, list[str]]:
     if not path:
         return default_field_map()
@@ -179,24 +203,71 @@ def _normalize(value: Any) -> str:
     return text
 
 
-def _record_from_raw(raw: Any, alias_table: dict[str, str], canonicals: list[str], source_str: str) -> dict[str, str]:
-    out: dict[str, str] = {c: "N/A" for c in canonicals}
+def _format_key_evidence(value: Any) -> str:
+    if isinstance(value, list):
+        lines: list[str] = []
+        for i, item in enumerate(value, 1):
+            if isinstance(item, dict):
+                reference_doc = _normalize(item.get("reference_doc") or item.get("referenceDoc") or item.get("doc"))
+                log_match = _normalize(item.get("log_match") or item.get("logMatch") or item.get("match"))
+                lines.append(f"{i}) reference_doc={reference_doc}; log_match={log_match}")
+            else:
+                lines.append(f"{i}) {_normalize(item)}")
+        return " | ".join(lines) if lines else "N/A"
+    return _normalize(value)
+
+
+def _flatten_raw(raw: Any) -> dict[str, Any]:
+    flattened: dict[str, Any] = {}
+
+    def visit(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            for k, v in value.items():
+                next_path = f"{path}.{k}" if path else str(k)
+                visit(v, next_path)
+            return
+        if isinstance(value, list):
+            if path.endswith("key_evidence") or path.endswith("key_evdence"):
+                flattened[path] = _format_key_evidence(value)
+                leaf = path.split(".")[-1]
+                flattened.setdefault(leaf, flattened[path])
+                return
+            if value and all(isinstance(x, dict) for x in value):
+                flattened[path] = _normalize(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
+            else:
+                flattened[path] = _normalize(" | ".join(_normalize(x) for x in value))
+            leaf = path.split(".")[-1]
+            flattened.setdefault(leaf, flattened[path])
+            return
+
+        flattened[path] = value
+        if "." in path:
+            leaf = path.split(".")[-1]
+            flattened.setdefault(leaf, value)
+
     if isinstance(raw, dict):
-        items = raw.items()
-    elif hasattr(raw, "__dict__"):
-        items = raw.__dict__.items()
+        visit(raw, "")
     else:
-        items = ((k, getattr(raw, k)) for k in dir(raw) if not k.startswith("_"))
-    for k, v in items:
+        flattened["value"] = raw
+    return flattened
+
+
+def _record_from_raw(
+    raw: Any,
+    alias_table: dict[str, str],
+    normalized_alias_table: dict[str, str],
+    canonicals: list[str],
+    source_str: str,
+) -> dict[str, str]:
+    out: dict[str, str] = {c: "N/A" for c in canonicals}
+    flattened = _flatten_raw(raw)
+    for k, v in flattened.items():
         canonical = alias_table.get(k)
+        if canonical is None:
+            canonical = normalized_alias_table.get(_normalize_key_name(k))
         if canonical is None or v is None:
             continue
-        text = str(v).strip()
-        if not text:
-            continue
-        if " " in text or "\t" in text or "\n" in text:
-            text = _WS_RE.sub(" ", text)
-        out[canonical] = text
+        out[canonical] = _normalize(v)
     out["sourceFile"] = source_str
     return out
 
@@ -205,6 +276,8 @@ def _parse_json_payload(raw: Any) -> list[Any]:
     if isinstance(raw, list):
         return raw
     if isinstance(raw, dict):
+        if any(k in raw for k in ("case_execution_info", "version_info", "key_evdence", "problem_category", "root_case_conclusion")):
+            return [raw]
         for k in ("records", "items", "data"):
             v = raw.get(k)
             if isinstance(v, list):
@@ -291,6 +364,21 @@ class _Group:
             self.sources.append(v)
 
 
+class _ExecGroup:
+    __slots__ = ("count", "result", "error_message", "duration_bucket", "cases")
+
+    def __init__(self, result: str, error_message: str, duration_bucket: str) -> None:
+        self.count = 0
+        self.result = result
+        self.error_message = error_message
+        self.duration_bucket = duration_bucket
+        self.cases: list[str] = []
+
+    def add(self, rec: dict[str, str]) -> None:
+        self.count += 1
+        self.cases.append(rec.get("useCaseName", "N/A"))
+
+
 _DEFAULT_GROUP_BY = ("issueCategory", "issueSubcategory", "rootCauseConclusion")
 
 
@@ -325,6 +413,83 @@ def _group_records(records: list[dict[str, str]], group_by: list[str]) -> list[_
     return rows
 
 
+def _duration_bucket(duration_text: str) -> str:
+    text = (duration_text or "").strip().lower()
+    if not text or text == "n/a":
+        return "N/A"
+    try:
+        if text.endswith("ms"):
+            seconds = float(text[:-2].strip()) / 1000.0
+        elif text.endswith("s"):
+            seconds = float(text[:-1].strip())
+        else:
+            seconds = float(text)
+    except ValueError:
+        return duration_text
+    if seconds < 1:
+        return "<1s"
+    if seconds < 5:
+        return "1-5s"
+    if seconds < 30:
+        return "5-30s"
+    return ">=30s"
+
+
+def _group_execution_info(records: list[dict[str, str]]) -> list[_ExecGroup]:
+    groups: dict[tuple[str, str, str], _ExecGroup] = {}
+    for rec in records:
+        result = rec.get("caseResult", "N/A")
+        error = rec.get("caseErrorMessage", "N/A")
+        bucket = _duration_bucket(rec.get("caseDuration", "N/A"))
+        key = (result, error, bucket)
+        g = groups.get(key)
+        if g is None:
+            g = _ExecGroup(result, error, bucket)
+            groups[key] = g
+        g.add(rec)
+    rows = list(groups.values())
+    rows.sort(key=lambda r: (-r.count, r.result, r.error_message, r.duration_bucket))
+    return rows
+
+
+def _case_identity(rec: dict[str, str]) -> str:
+    name = rec.get("useCaseName", "N/A")
+    if name != "N/A":
+        return _normalize_key_name(name)
+    source = rec.get("sourceFile", "")
+    first = source.split("|", 1)[0].strip()
+    if first:
+        return _normalize_key_name(Path(first).stem)
+    return ""
+
+
+def _merge_same_case_records(records: list[dict[str, str]]) -> list[dict[str, str]]:
+    merged: dict[str, dict[str, str]] = {}
+    for rec in records:
+        cid = _case_identity(rec)
+        if not cid:
+            cid = f"auto-{len(merged)}"
+        current = merged.get(cid)
+        if current is None:
+            merged[cid] = dict(rec)
+            continue
+        for k, v in rec.items():
+            old = current.get(k, "N/A")
+            if k == "sourceFile":
+                old_set = {x.strip() for x in old.split("|") if x.strip() and x.strip() != "N/A"}
+                new_set = {x.strip() for x in v.split("|") if x.strip() and x.strip() != "N/A"}
+                combined = sorted(old_set | new_set)
+                current[k] = " | ".join(combined) if combined else "N/A"
+            elif old == "N/A" and v != "N/A":
+                current[k] = v
+            elif old != "N/A" and v != "N/A" and old != v and k in {
+                "keyEvidence", "fixAction", "fixConclusion", "rerunConclusion", "caseErrorMessage"
+            }:
+                parts = [p.strip() for p in (old + " | " + v).split("|") if p.strip()]
+                current[k] = " | ".join(dict.fromkeys(parts))
+    return list(merged.values())
+
+
 # ---------------------------------------------------------------------------
 # Report rendering
 # ---------------------------------------------------------------------------
@@ -339,7 +504,7 @@ def _join_unique(values: list[str]) -> str:
     return "<br>".join(values) if values else "N/A"
 
 
-def _build_report(rows: list[_Group], total_records: int, input_count: int,
+def _build_report(rows: list[_Group], exec_rows: list[_ExecGroup], total_records: int, input_count: int,
                   locale: dict[str, str], locale_name: str, runtime_name: str) -> str:
     parts: list[str] = []
     add = parts.append
@@ -373,6 +538,17 @@ def _build_report(rows: list[_Group], total_records: int, input_count: int,
             f"{_join_unique(r.rerun_conclusions)} | {_join_unique(r.sources)} |"
         )
     add("")
+    exec_title = locale.get("executionCluster", "Case Execution Cluster")
+    add(f"## {exec_title}")
+    add("")
+    exec_result_col = locale.get("executionResult", "Execution Result")
+    exec_error_col = locale.get("executionError", "Error Message")
+    exec_duration_col = locale.get("executionDurationBucket", "Duration Bucket")
+    add(f"| {exec_result_col} | {exec_error_col} | {exec_duration_col} | {locale['count']} | {locale['cases']} |")
+    add("|---|---|---|---:|---|")
+    for r in exec_rows:
+        add(f"| {r.result} | {r.error_message} | {r.duration_bucket} | {r.count} | {_numbered(r.cases)} |")
+    add("")
     add(f"## {locale['details']}")
     add("")
     add(f"- {locale['count']}: {len(rows)}")
@@ -397,13 +573,15 @@ def _write_normalized(output_dir: Path, records: list[dict[str, str]]) -> Path:
 
 
 def _write_summary(output_dir: Path, records: list[dict[str, str]], rows: list[_Group],
+                   exec_rows: list[_ExecGroup], group_by: list[str],
                    input_files: list[Path], locale_name: str, runtime_name: str) -> Path:
     summary = {
         "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "totalFiles": len(input_files),
         "totalRecords": len(records),
         "totalGroups": len(rows),
-        "groupBy": ["issueCategory", "issueSubcategory", "rootCauseConclusion"],
+        "executionGroups": len(exec_rows),
+        "groupBy": group_by,
         "files": [str(p) for p in input_files],
         "locale": locale_name,
         "runtime": runtime_name,
@@ -427,12 +605,13 @@ def analyze(input_files: list[Path], output_dir: Path,
     group_by = load_group_by(dimension_rules_path)
     locale = load_locale(locale_name, locale_file)
     alias_table, canonicals = _flatten_alias_table(field_map)
+    normalized_alias_table = _build_normalized_alias_table(alias_table)
 
     resolved = [p.resolve() for p in input_files if p.exists()]
     if not resolved:
         raise FileNotFoundError("No supported input files were found.")
 
-    all_records: list[dict[str, str]] = []
+    parsed_by_file: dict[str, dict[str, Any]] = {}
     for item in resolved:
         ext = item.suffix.lower()
         source_str = str(item)
@@ -449,19 +628,53 @@ def analyze(input_files: list[Path], output_dir: Path,
             payload = _parse_txt(data.decode("utf-8"))
         else:
             continue
-        for raw in payload:
-            all_records.append(_record_from_raw(raw, alias_table, canonicals, source_str))
+        records = [
+            _record_from_raw(raw, alias_table, normalized_alias_table, canonicals, source_str)
+            for raw in payload
+        ]
+        parsed_by_file[str(item.resolve())] = {
+            "path": item.resolve(),
+            "stem": str(item.resolve().with_suffix("")),
+            "ext": ext,
+            "records": records,
+        }
+
+    all_records: list[dict[str, str]] = []
+    paired_stems: set[str] = set()
+    stems: dict[str, dict[str, dict[str, Any]]] = {}
+    for info in parsed_by_file.values():
+        stems.setdefault(info["stem"], {})[info["ext"]] = info
+
+    for stem, pair in stems.items():
+        json_info = pair.get(".json")
+        txt_info = pair.get(".txt")
+        if json_info and txt_info and len(json_info["records"]) == 1 and len(txt_info["records"]) == 1:
+            merged = dict(txt_info["records"][0])
+            for k, v in json_info["records"][0].items():
+                if v != "N/A" or merged.get(k, "N/A") == "N/A":
+                    merged[k] = v
+            merged["sourceFile"] = f"{json_info['path']} | {txt_info['path']}"
+            all_records.append(merged)
+            paired_stems.add(stem)
+
+    for info in parsed_by_file.values():
+        if info["stem"] in paired_stems:
+            continue
+        all_records.extend(info["records"])
+
+    all_records = _merge_same_case_records(all_records)
 
     if not all_records:
         raise ValueError("No valid records were parsed from input files.")
 
     rows = _group_records(all_records, group_by)
+    exec_rows = _group_execution_info(all_records)
     _ensure_dir(output_dir)
     normalized_path = _write_normalized(output_dir, all_records)
-    summary_path = _write_summary(output_dir, all_records, rows, resolved, locale_name, runtime_name)
+    summary_path = _write_summary(output_dir, all_records, rows, exec_rows, group_by, resolved, locale_name, runtime_name)
     report_path = output_dir / "log-analysis-report.md"
     report_path.write_text(
-        _build_report(rows, len(all_records), len(resolved), locale, locale_name, runtime_name),
+        _build_report(rows, exec_rows, len(all_records), len(resolved), locale, locale_name, runtime_name),
         encoding="utf-8",
     )
     return {
@@ -470,6 +683,7 @@ def analyze(input_files: list[Path], output_dir: Path,
         "summaryPath": str(summary_path),
         "totalRecords": len(all_records),
         "totalGroups": len(rows),
+        "executionGroups": len(exec_rows),
         "totalFiles": len(resolved),
         "locale": locale_name,
         "runtime": runtime_name,
@@ -534,6 +748,58 @@ def run_test_suite(skill_root: Path, locale_name: str = DEFAULT_LOCALE) -> dict[
         results.append({"name": name, "passed": "PASS" if ok else "FAIL", "detail": detail})
 
     record("Generate fixtures", True, f"Generated {len(generated)} fixture files")
+
+    structured_json = fixtures_dir / "structured-single-case.json"
+    structured_txt = fixtures_dir / "structured-single-case.txt"
+    structured_payload = {
+        "case_name": "Auth-Timeout-001",
+        "problem_category": "Network",
+        "problem_subcategory": "Timeout",
+        "root_case_conclusion": "Upstream timeout",
+        "key_evdence": [
+            {"reference_doc": "gw.log", "log_match": "504 Gateway Timeout"}
+        ],
+        "fix_action": "Increase timeout to 15s",
+        "rerun_result": "PASS",
+        "analysis_time": "2026-05-09 10:01:02",
+        "version_info": {
+            "device_sn": "SN-001",
+            "device_type": "edge-gateway",
+            "platform_version": "4.0.1",
+            "hy_version": "2.3.0"
+        },
+        "case_execution_info": {
+            "case_name": "Auth-Timeout-001",
+            "begin_time": "2026-05-09 10:00:00",
+            "end_time": "2026-05-09 10:00:12",
+            "duration": "12s",
+            "result": "FAIL",
+            "error_message": "HTTP 504"
+        }
+    }
+    structured_json.write_text(json.dumps(structured_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    structured_txt.write_text(
+        "\n".join([
+            "case_name: Auth-Timeout-001",
+            "problem_category: Network",
+            "root_case_conclusion: Upstream timeout",
+            "fix_action: Increase timeout to 15s",
+            "rerun_result: PASS",
+        ]),
+        encoding="utf-8",
+    )
+    structured_result = analyze(
+        [structured_json, structured_txt],
+        output_dir / "structured-pair",
+        locale_name=locale_name,
+        runtime_name="python",
+    )
+    structured_ok = structured_result["totalRecords"] == 1 and structured_result["executionGroups"] >= 1
+    record(
+        "Structured pair merge",
+        structured_ok,
+        f"paired json/txt merged to {structured_result['totalRecords']} record(s); execution groups={structured_result['executionGroups']}"
+    )
 
     alt = "zh-CN" if locale_name != "zh-CN" else "en-US"
     for lang in {locale_name, alt}:

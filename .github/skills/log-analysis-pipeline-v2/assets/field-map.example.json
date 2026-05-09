@@ -1,12 +1,22 @@
 {
   "fields": {
-    "useCaseName": ["useCaseName", "caseName", "用例名称"],
-    "issueCategory": ["issueCategory", "problemCategory", "问题大类"],
-    "issueSubcategory": ["issueSubcategory", "problemSubcategory", "问题小类"],
-    "rootCauseConclusion": ["rootCauseConclusion", "rootCause", "根因诊断结论"],
-    "keyEvidence": ["keyEvidence", "evidence", "关键佐证信息"],
-    "fixAction": ["fixAction", "repairAction", "问题修复动作"],
-    "fixConclusion": ["fixConclusion", "repairConclusion", "问题修复结论"],
-    "rerunConclusion": ["rerunConclusion", "rerunResult", "用例重跑结论"]
+    "useCaseName": ["useCaseName", "caseName", "case_name", "用例名称", "case_execution_info.case_name"],
+    "issueCategory": ["issueCategory", "problemCategory", "problem_category", "问题大类"],
+    "issueSubcategory": ["issueSubcategory", "problemSubcategory", "problem_subcategory", "问题小类"],
+    "rootCauseConclusion": ["rootCauseConclusion", "rootCause", "root_case_conclusion", "根因诊断结论"],
+    "keyEvidence": ["keyEvidence", "evidence", "key_evdence", "key_evidence", "关键佐证信息", "key_evdence.log_match", "key_evidence.log_match"],
+    "fixAction": ["fixAction", "repairAction", "fix_action", "问题修复动作"],
+    "fixConclusion": ["fixConclusion", "repairConclusion", "fix_conclusion", "问题修复结论"],
+    "rerunConclusion": ["rerunConclusion", "rerunResult", "rerun_result", "用例重跑结论"],
+    "analysisTime": ["analysisTime", "analysis_time", "分析时间"],
+    "deviceSn": ["deviceSn", "device_sn", "version_info.device_sn"],
+    "deviceType": ["deviceType", "device_type", "version_info.device_type"],
+    "platformVersion": ["platformVersion", "platform_version", "version_info.platform_version"],
+    "hyVersion": ["hyVersion", "hy_version", "version_info.hy_version"],
+    "caseBeginTime": ["caseBeginTime", "begin_time", "case_execution_info.begin_time"],
+    "caseEndTime": ["caseEndTime", "end_time", "case_execution_info.end_time"],
+    "caseDuration": ["caseDuration", "duration", "case_execution_info.duration"],
+    "caseResult": ["caseResult", "result", "case_execution_info.result"],
+    "caseErrorMessage": ["caseErrorMessage", "error_message", "case_execution_info.error_message"]
   }
 }
