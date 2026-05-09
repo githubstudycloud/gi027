@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-05-09 08:13:05",
+  "totalFiles": 2,
+  "totalRecords": 20,
+  "totalGroups": 10,
+  "groupBy": [
+    "issueCategory",
+    "issueSubcategory",
+    "rootCauseConclusion"
+  ],
+  "files": [
+    "D:\\20260422\\.github\\skills\\log-analysis-pipeline\\tests\\fixtures\\sample-10.json",
+    "D:\\20260422\\.github\\skills\\log-analysis-pipeline\\tests\\fixtures\\sample-10.txt"
+  ],
+  "locale": "en-US",
+  "runtime": "python"
+}
