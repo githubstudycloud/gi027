@@ -1,0 +1,179 @@
+useCaseName: Case-20-1
+issueCategory: Stability
+issueSubcategory: Timeout
+rootCauseConclusion: Root cause 0
+keyEvidence: Evidence 1
+fixAction: Action 0
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-2
+issueCategory: Correctness
+issueSubcategory: Signature
+rootCauseConclusion: Root cause 1
+keyEvidence: Evidence 2
+fixAction: Action 1
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-3
+issueCategory: Performance
+issueSubcategory: Mapping
+rootCauseConclusion: Root cause 2
+keyEvidence: Evidence 3
+fixAction: Action 2
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-4
+issueCategory: Consistency
+issueSubcategory: Network
+rootCauseConclusion: Root cause 3
+keyEvidence: Evidence 4
+fixAction: Action 3
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-5
+issueCategory: Stability
+issueSubcategory: Load
+rootCauseConclusion: Root cause 4
+keyEvidence: Evidence 5
+fixAction: Action 4
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-6
+issueCategory: Correctness
+issueSubcategory: Timeout
+rootCauseConclusion: Root cause 5
+keyEvidence: Evidence 6
+fixAction: Action 0
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-7
+issueCategory: Performance
+issueSubcategory: Signature
+rootCauseConclusion: Root cause 6
+keyEvidence: Evidence 7
+fixAction: Action 1
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-8
+issueCategory: Consistency
+issueSubcategory: Mapping
+rootCauseConclusion: Root cause 0
+keyEvidence: Evidence 8
+fixAction: Action 2
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-9
+issueCategory: Stability
+issueSubcategory: Network
+rootCauseConclusion: Root cause 1
+keyEvidence: Evidence 9
+fixAction: Action 3
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-10
+issueCategory: Correctness
+issueSubcategory: Load
+rootCauseConclusion: Root cause 2
+keyEvidence: Evidence 10
+fixAction: Action 4
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-11
+issueCategory: Performance
+issueSubcategory: Timeout
+rootCauseConclusion: Root cause 3
+keyEvidence: Evidence 11
+fixAction: Action 0
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-12
+issueCategory: Consistency
+issueSubcategory: Signature
+rootCauseConclusion: Root cause 4
+keyEvidence: Evidence 12
+fixAction: Action 1
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-13
+issueCategory: Stability
+issueSubcategory: Mapping
+rootCauseConclusion: Root cause 5
+keyEvidence: Evidence 13
+fixAction: Action 2
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-14
+issueCategory: Correctness
+issueSubcategory: Network
+rootCauseConclusion: Root cause 6
+keyEvidence: Evidence 14
+fixAction: Action 3
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-15
+issueCategory: Performance
+issueSubcategory: Load
+rootCauseConclusion: Root cause 0
+keyEvidence: Evidence 15
+fixAction: Action 4
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-16
+issueCategory: Consistency
+issueSubcategory: Timeout
+rootCauseConclusion: Root cause 1
+keyEvidence: Evidence 16
+fixAction: Action 0
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-17
+issueCategory: Stability
+issueSubcategory: Signature
+rootCauseConclusion: Root cause 2
+keyEvidence: Evidence 17
+fixAction: Action 1
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-18
+issueCategory: Correctness
+issueSubcategory: Mapping
+rootCauseConclusion: Root cause 3
+keyEvidence: Evidence 18
+fixAction: Action 2
+fixConclusion: Mitigated
+rerunConclusion: Passed
+
+useCaseName: Case-20-19
+issueCategory: Performance
+issueSubcategory: Network
+rootCauseConclusion: Root cause 4
+keyEvidence: Evidence 19
+fixAction: Action 3
+fixConclusion: Fixed
+rerunConclusion: Passed
+
+useCaseName: Case-20-20
+issueCategory: Consistency
+issueSubcategory: Load
+rootCauseConclusion: Root cause 5
+keyEvidence: Evidence 20
+fixAction: Action 4
+fixConclusion: Mitigated
+rerunConclusion: Passed

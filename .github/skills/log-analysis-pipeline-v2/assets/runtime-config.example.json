@@ -1,0 +1,18 @@
+{
+  "platformPriority": {
+    "win32": ["powershell", "python", "node"],
+    "linux": ["bash", "python", "node"],
+    "darwin": ["bash", "python", "node"]
+  },
+  "languageDefaults": {
+    "win32": "zh-CN",
+    "linux": "en-US",
+    "darwin": "en-US"
+  },
+  "runtimes": {
+    "powershell": ["pwsh", "powershell"],
+    "bash": ["bash"],
+    "python": ["python3", "python", "py -3"],
+    "node": ["node", "npm"]
+  }
+}

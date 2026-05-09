@@ -1,0 +1,11 @@
+{
+  "name": "log-analysis-pipeline-v2",
+  "private": true,
+  "type": "module",
+  "version": "2.0.0",
+  "scripts": {
+    "analyze": "node ./scripts/run-skill.mjs",
+    "test": "node ./scripts/run-skill.mjs",
+    "benchmark": "python ./scripts/benchmark.py"
+  }
+}
