@@ -481,10 +481,13 @@ def run_test_suite(skill_root: Path, locale_name: str = DEFAULT_LOCALE) -> dict[
         locale['ready'] if result_text == "PASS" else locale['fixBeforeRelease'],
         "",
     ])
+    report_text = "\n".join(lines)
     report_path = skill_root / "reports" / "test-report.md"
+    locale_report_path = skill_root / "reports" / f"test-report.{locale_name}.md"
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text("\n".join(lines), encoding="utf-8")
-    return {"reportPath": str(report_path), "passed": passed == total, "total": total, "perf": perf_rows}
+    report_path.write_text(report_text, encoding="utf-8")
+    locale_report_path.write_text(report_text, encoding="utf-8")
+    return {"reportPath": str(report_path), "localeReportPath": str(locale_report_path), "passed": passed == total, "total": total, "perf": perf_rows}
 
 
 def main() -> None:
