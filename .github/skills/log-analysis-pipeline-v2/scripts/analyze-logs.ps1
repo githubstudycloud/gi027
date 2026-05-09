@@ -4,6 +4,7 @@ param(
     [string]$OutputDir = "./reports/output",
     [string]$FieldMapPath,
     [string]$DimensionRulesPath,
+    [string]$ReportLayoutPath,
     [string]$Locale = "en-US",
     [string]$LocaleFile
 )
@@ -21,6 +22,7 @@ $args = @($coreScript, "analyze", "--input-files") + $InputFiles + @(
 )
 if ($FieldMapPath) { $args += @("--field-map", $FieldMapPath) }
 if ($DimensionRulesPath) { $args += @("--dimension-rules", $DimensionRulesPath) }
+if ($ReportLayoutPath) { $args += @("--report-layout", $ReportLayoutPath) }
 if ($LocaleFile) { $args += @("--locale-file", $LocaleFile) }
 if ($python.Source -eq "py") {
     & py -3 @args

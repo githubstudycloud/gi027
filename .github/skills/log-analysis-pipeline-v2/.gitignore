@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 node_modules/
+reports/output/
+reports/.bench/
+tests/fixtures/custom-report-layout.json

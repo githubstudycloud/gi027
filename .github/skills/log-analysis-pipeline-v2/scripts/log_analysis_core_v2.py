@@ -188,6 +188,40 @@ def load_group_by(path: Path | None) -> list[str]:
     return default
 
 
+def default_report_layout() -> dict[str, Any]:
+    return {
+        "mode": "single-table",
+        "allowMultiCaseCells": True,
+        "tableColumns": [
+            "category", "subcategory", "rootCause", "count", "cases", "evidence",
+            "fixAction", "fixConclusion", "rerunConclusion", "caseResult", "caseErrorMessage", "sources"
+        ],
+    }
+
+
+def load_report_layout(path: Path | None) -> dict[str, Any]:
+    if not path:
+        return default_report_layout()
+    if not path.exists():
+        raise FileNotFoundError(f"Report layout file not found: {path}")
+    data = _load_json(path)
+    if not isinstance(data, dict):
+        return default_report_layout()
+    layout = default_report_layout()
+    mode = data.get("mode")
+    if isinstance(mode, str) and mode:
+        layout["mode"] = mode
+    allow_multi = data.get("allowMultiCaseCells")
+    if isinstance(allow_multi, bool):
+        layout["allowMultiCaseCells"] = allow_multi
+    cols = data.get("tableColumns")
+    if isinstance(cols, list):
+        normalized_cols = [str(c) for c in cols if str(c).strip()]
+        if normalized_cols:
+            layout["tableColumns"] = normalized_cols
+    return layout
+
+
 # ---------------------------------------------------------------------------
 # Parsing — single pass, single normalize
 # ---------------------------------------------------------------------------
@@ -323,8 +357,9 @@ def _parse_txt(text: str) -> list[dict[str, Any]]:
 class _Group:
     __slots__ = ("count", "category", "subcategory", "rootCause",
                  "cases", "evidence", "fix_actions", "fix_conclusions",
-                 "rerun_conclusions", "sources", "_seen_actions",
-                 "_seen_conclusions", "_seen_rerun", "_seen_sources")
+                 "rerun_conclusions", "case_results", "case_errors", "sources",
+                 "_seen_actions", "_seen_conclusions", "_seen_rerun",
+                 "_seen_case_results", "_seen_case_errors", "_seen_sources")
 
     def __init__(self, category: str, subcategory: str, root_cause: str) -> None:
         self.count = 0
@@ -336,10 +371,14 @@ class _Group:
         self.fix_actions: list[str] = []
         self.fix_conclusions: list[str] = []
         self.rerun_conclusions: list[str] = []
+        self.case_results: list[str] = []
+        self.case_errors: list[str] = []
         self.sources: list[str] = []
         self._seen_actions: set[str] = set()
         self._seen_conclusions: set[str] = set()
         self._seen_rerun: set[str] = set()
+        self._seen_case_results: set[str] = set()
+        self._seen_case_errors: set[str] = set()
         self._seen_sources: set[str] = set()
 
     def add(self, rec: dict[str, str]) -> None:
@@ -358,6 +397,14 @@ class _Group:
         if v not in self._seen_rerun:
             self._seen_rerun.add(v)
             self.rerun_conclusions.append(v)
+        v = rec.get("caseResult", "N/A")
+        if v not in self._seen_case_results:
+            self._seen_case_results.add(v)
+            self.case_results.append(v)
+        v = rec.get("caseErrorMessage", "N/A")
+        if v not in self._seen_case_errors:
+            self._seen_case_errors.add(v)
+            self.case_errors.append(v)
         v = rec.get("sourceFile", "N/A")
         if v not in self._seen_sources:
             self._seen_sources.add(v)
@@ -504,7 +551,55 @@ def _join_unique(values: list[str]) -> str:
     return "<br>".join(values) if values else "N/A"
 
 
+def _column_header(column: str, locale: dict[str, str]) -> str:
+    mapping = {
+        "category": ("category", "Issue Category"),
+        "subcategory": ("subcategory", "Issue Subcategory"),
+        "rootCause": ("rootCause", "Root Cause"),
+        "count": ("count", "Count"),
+        "cases": ("cases", "Use Cases"),
+        "evidence": ("evidence", "Key Evidence"),
+        "fixAction": ("fixAction", "Fix Action"),
+        "fixConclusion": ("fixConclusion", "Fix Conclusion"),
+        "rerunConclusion": ("rerunConclusion", "Rerun Conclusion"),
+        "caseResult": ("executionResult", "Execution Result"),
+        "caseErrorMessage": ("executionError", "Error Message"),
+        "sources": ("sources", "Source Files"),
+    }
+    key, fallback = mapping.get(column, (column, column))
+    return locale.get(key, fallback)
+
+
+def _column_value(column: str, row: _Group) -> str:
+    if column == "category":
+        return row.category
+    if column == "subcategory":
+        return row.subcategory
+    if column == "rootCause":
+        return row.rootCause
+    if column == "count":
+        return str(row.count)
+    if column == "cases":
+        return _numbered(row.cases)
+    if column == "evidence":
+        return _numbered(row.evidence)
+    if column == "fixAction":
+        return _join_unique(row.fix_actions)
+    if column == "fixConclusion":
+        return _join_unique(row.fix_conclusions)
+    if column == "rerunConclusion":
+        return _join_unique(row.rerun_conclusions)
+    if column == "caseResult":
+        return _join_unique(row.case_results)
+    if column == "caseErrorMessage":
+        return _join_unique(row.case_errors)
+    if column == "sources":
+        return _join_unique(row.sources)
+    return "N/A"
+
+
 def _build_report(rows: list[_Group], exec_rows: list[_ExecGroup], total_records: int, input_count: int,
+                  report_layout: dict[str, Any],
                   locale: dict[str, str], locale_name: str, runtime_name: str) -> str:
     parts: list[str] = []
     add = parts.append
@@ -524,19 +619,16 @@ def _build_report(rows: list[_Group], exec_rows: list[_ExecGroup], total_records
     add("")
     add(f"## {locale['summary']}")
     add("")
-    add(
-        f"| {locale['category']} | {locale['subcategory']} | {locale['rootCause']} | "
-        f"{locale['count']} | {locale['cases']} | {locale['evidence']} | "
-        f"{locale['fixAction']} | {locale['fixConclusion']} | {locale['rerunConclusion']} | {locale['sources']} |"
-    )
-    add("|---|---|---|---:|---|---|---|---|---|---|")
+    table_columns = report_layout.get("tableColumns")
+    if not isinstance(table_columns, list) or not table_columns:
+        table_columns = default_report_layout()["tableColumns"]
+    headers = [_column_header(c, locale) for c in table_columns]
+    aligns = ["---:" if c == "count" else "---" for c in table_columns]
+    add("| " + " | ".join(headers) + " |")
+    add("|" + "|".join(aligns) + "|")
     for r in rows:
-        add(
-            f"| {r.category} | {r.subcategory} | {r.rootCause} | {r.count} | "
-            f"{_numbered(r.cases)} | {_numbered(r.evidence)} | "
-            f"{_join_unique(r.fix_actions)} | {_join_unique(r.fix_conclusions)} | "
-            f"{_join_unique(r.rerun_conclusions)} | {_join_unique(r.sources)} |"
-        )
+        values = [_column_value(c, r) for c in table_columns]
+        add("| " + " | ".join(values) + " |")
     add("")
     exec_title = locale.get("executionCluster", "Case Execution Cluster")
     add(f"## {exec_title}")
@@ -574,6 +666,7 @@ def _write_normalized(output_dir: Path, records: list[dict[str, str]]) -> Path:
 
 def _write_summary(output_dir: Path, records: list[dict[str, str]], rows: list[_Group],
                    exec_rows: list[_ExecGroup], group_by: list[str],
+                   report_layout: dict[str, Any],
                    input_files: list[Path], locale_name: str, runtime_name: str) -> Path:
     summary = {
         "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -582,6 +675,7 @@ def _write_summary(output_dir: Path, records: list[dict[str, str]], rows: list[_
         "totalGroups": len(rows),
         "executionGroups": len(exec_rows),
         "groupBy": group_by,
+        "reportLayout": report_layout,
         "files": [str(p) for p in input_files],
         "locale": locale_name,
         "runtime": runtime_name,
@@ -598,11 +692,17 @@ def _write_summary(output_dir: Path, records: list[dict[str, str]], rows: list[_
 def analyze(input_files: list[Path], output_dir: Path,
             field_map_path: Path | None = None,
             dimension_rules_path: Path | None = None,
+            report_layout_path: Path | None = None,
             locale_name: str = DEFAULT_LOCALE,
             locale_file: Path | None = None,
             runtime_name: str = "python") -> dict[str, Any]:
     field_map = load_field_map(field_map_path)
     group_by = load_group_by(dimension_rules_path)
+    known_fields = set(field_map.keys())
+    group_by = [g for g in group_by if g in known_fields]
+    if not group_by:
+        group_by = list(_DEFAULT_GROUP_BY)
+    report_layout = load_report_layout(report_layout_path)
     locale = load_locale(locale_name, locale_file)
     alias_table, canonicals = _flatten_alias_table(field_map)
     normalized_alias_table = _build_normalized_alias_table(alias_table)
@@ -671,10 +771,10 @@ def analyze(input_files: list[Path], output_dir: Path,
     exec_rows = _group_execution_info(all_records)
     _ensure_dir(output_dir)
     normalized_path = _write_normalized(output_dir, all_records)
-    summary_path = _write_summary(output_dir, all_records, rows, exec_rows, group_by, resolved, locale_name, runtime_name)
+    summary_path = _write_summary(output_dir, all_records, rows, exec_rows, group_by, report_layout, resolved, locale_name, runtime_name)
     report_path = output_dir / "log-analysis-report.md"
     report_path.write_text(
-        _build_report(rows, exec_rows, len(all_records), len(resolved), locale, locale_name, runtime_name),
+        _build_report(rows, exec_rows, len(all_records), len(resolved), report_layout, locale, locale_name, runtime_name),
         encoding="utf-8",
     )
     return {
@@ -801,6 +901,32 @@ def run_test_suite(skill_root: Path, locale_name: str = DEFAULT_LOCALE) -> dict[
         f"paired json/txt merged to {structured_result['totalRecords']} record(s); execution groups={structured_result['executionGroups']}"
     )
 
+    custom_layout = fixtures_dir / "custom-report-layout.json"
+    custom_layout.write_text(
+        json.dumps(
+            {
+                "mode": "single-table",
+                "allowMultiCaseCells": True,
+                "tableColumns": ["category", "rootCause", "count", "caseResult", "cases"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    custom_layout_result = analyze(
+        [fixtures_dir / "sample-10.json"],
+        output_dir / "custom-layout",
+        report_layout_path=custom_layout,
+        locale_name=locale_name,
+        runtime_name="python",
+    )
+    custom_layout_report = Path(custom_layout_result["reportPath"]).read_text(encoding="utf-8")
+    layout_ok = ("执行结果" in custom_layout_report or "Execution Result" in custom_layout_report) and (
+        "来源文件" not in custom_layout_report and "Source Files" not in custom_layout_report
+    )
+    record("Custom report layout", layout_ok, "Validated configurable report columns via --report-layout")
+
     alt = "zh-CN" if locale_name != "zh-CN" else "en-US"
     for lang in {locale_name, alt}:
         result = analyze(
@@ -875,6 +1001,7 @@ def main() -> None:
     a.add_argument("--output-dir", required=True)
     a.add_argument("--field-map")
     a.add_argument("--dimension-rules")
+    a.add_argument("--report-layout")
     a.add_argument("--locale", default=DEFAULT_LOCALE)
     a.add_argument("--locale-file")
     a.add_argument("--runtime", default="python")
@@ -890,6 +1017,7 @@ def main() -> None:
             Path(args.output_dir),
             Path(args.field_map) if args.field_map else None,
             Path(args.dimension_rules) if args.dimension_rules else None,
+            Path(args.report_layout) if args.report_layout else None,
             args.locale,
             Path(args.locale_file) if getattr(args, "locale_file", None) else None,
             args.runtime,

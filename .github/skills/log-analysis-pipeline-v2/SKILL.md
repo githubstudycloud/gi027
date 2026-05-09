@@ -62,6 +62,11 @@ user-invocable: true
 5. 生成测试 + 性能样例（10 / 20 / 200 / 1000 / 5000）
 6. 与 v1 对比：执行 [scripts/benchmark.py](./scripts/benchmark.py)
 
+可选参数增强：
+- `--report-layout <path>`：指定报告布局配置（列顺序/列集合）。
+- 当 `dimension-rules` 中 `groupBy` 包含未知字段时，会自动过滤；若过滤后为空，回退默认维度
+   `issueCategory / issueSubcategory / rootCauseConclusion`。
+
 ## 结构化输入示例（单用例）
 
 ```json
