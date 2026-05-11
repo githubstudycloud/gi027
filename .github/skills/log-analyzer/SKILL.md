@@ -47,6 +47,17 @@ python .github/skills/log-analyzer/scripts/log_analysis_core.py analyze `
 
 底层会自动归一到内部列键（`category` / `subcategory` / `rootCause` / `count` / `cases` / `evidence` / `caseResult` / `caseErrorMessage` …）。
 
+## 零参数自动发现配置（推荐）
+不想每次都传 `--field-map / --dimension-rules / --report-layout`？只需把 `assets/xxx.example.json` 复制并改名为 `xxx.json`：
+
+```
+assets/field-map.example.json     →  assets/field-map.json
+assets/dimension-rules.example.json → assets/dimension-rules.json
+assets/report-layout.example.json →  assets/report-layout.json
+```
+
+脚本会自动按 `assets/*.json` → `temp/*.json` → 内置默认 的顺序加载。**这样 AI 用自然语言触发 skill 也会用上你的配置**，无需在指令里指定路径。CLI 显式 `--xxx` 参数仍然优先级最高。
+
 ## 目录结构（请勿改名）
 ```
 log-analyzer/

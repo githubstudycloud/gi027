@@ -13,9 +13,10 @@
    - `case-003-cache-leak-legacy-typo.*` — 故意使用旧拼写 `key_evdence` 演示向后兼容
 
 ## 是否需要去掉 `.example` 后缀？
-- **不需要去改原文件**。`.example.json` 只是模板，脚本不会自动加载它们。
-- **推荐做法**：把 `assets/xxx.example.json` 复制一份到自己的位置（比如本目录），
-  改名为 `xxx.json`，然后通过 CLI 参数指向新文件。这样升级 v2 时不会冲突。
+- `.example.json` 本身不会被自动加载。
+- **推荐做法**：把 `assets/xxx.example.json` 复制一份到 `assets/` 同级（或本 `temp/`），改名为 `xxx.json`。
+- v2.2 起脚本会 **自动发现** `assets/field-map.json`、`assets/dimension-rules.json`、`assets/report-layout.json`（优先）或本 `temp/` 下同名文件（次选），AI 以自然语言触发时**无需额外传参**。
+- CLI 显式 `--field-map/--dimension-rules/--report-layout` 仍然优先级最高，便于临时切换。
 
 ## 一键跑通
 在仓库根目录执行：

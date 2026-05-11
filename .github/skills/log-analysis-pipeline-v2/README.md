@@ -48,3 +48,6 @@ python3 scripts/benchmark.py
 ## 想直接发给同事用？
 本目录用于**测试/验证/基准对比**。如果要把能力直接发给同事使用，请使用零版本号的轻量骨架：
 [../log-analyzer/](../log-analyzer/) — 同一份核心代码，但目录精简、文档极简、便于整目录覆盖升级。
+
+## 配置零参数自动加载（v2.2+）
+把 `assets/xxx.example.json` 复制并去掉 `.example` 后缀（如 `assets/field-map.json`），脚本会按 `assets/*.json` → `temp/*.json` → 内置默认 的顺序自动加载，**AI 用自然语言触发 skill 时也会自动用上你的配置**，无需在指令里指定路径。CLI `--field-map / --dimension-rules / --report-layout` 仍然优先级最高。

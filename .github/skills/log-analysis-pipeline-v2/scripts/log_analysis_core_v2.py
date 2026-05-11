@@ -736,6 +736,20 @@ def _write_summary(output_dir: Path, records: list[dict[str, str]], rows: list[_
 # Public API
 # ---------------------------------------------------------------------------
 
+# Search order for auto-discovered config files when CLI path is not provided.
+# `.example.json` is intentionally excluded — users must copy & rename to opt in.
+_AUTO_CONFIG_DIRS: tuple[Path, ...] = (ASSETS, ROOT / "temp")
+
+
+def _auto_discover_config(filename: str) -> Path | None:
+    """Return the first existing `<dir>/<filename>` in `_AUTO_CONFIG_DIRS`."""
+    for d in _AUTO_CONFIG_DIRS:
+        candidate = d / filename
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def analyze(input_files: list[Path], output_dir: Path,
             field_map_path: Path | None = None,
             dimension_rules_path: Path | None = None,
@@ -743,6 +757,12 @@ def analyze(input_files: list[Path], output_dir: Path,
             locale_name: str = DEFAULT_LOCALE,
             locale_file: Path | None = None,
             runtime_name: str = "python") -> dict[str, Any]:
+    if field_map_path is None:
+        field_map_path = _auto_discover_config("field-map.json")
+    if dimension_rules_path is None:
+        dimension_rules_path = _auto_discover_config("dimension-rules.json")
+    if report_layout_path is None:
+        report_layout_path = _auto_discover_config("report-layout.json")
     field_map = load_field_map(field_map_path)
     group_by = load_group_by(dimension_rules_path)
     known_fields = set(field_map.keys())
@@ -1018,6 +1038,46 @@ def run_test_suite(skill_root: Path, locale_name: str = DEFAULT_LOCALE) -> dict[
     )
     record("Synonym column names", synonym_ok,
            "tableColumns accepts problem_category/执行结果/用例名称/key_evidence aliases")
+
+    # Auto-discovery: drop a temp report-layout.json with only 2 columns and run
+    # analyze() with no explicit path; it should be picked up from skill_root/temp.
+    auto_dir = skill_root / "temp"
+    auto_dir.mkdir(parents=True, exist_ok=True)
+    auto_layout = auto_dir / "report-layout.json"
+    auto_layout_existed = auto_layout.exists()
+    auto_layout_backup = auto_layout.read_bytes() if auto_layout_existed else None
+    try:
+        auto_layout.write_text(
+            json.dumps(
+                {
+                    "mode": "single-table",
+                    "allowMultiCaseCells": True,
+                    "tableColumns": ["category", "count"],
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        auto_result = analyze(
+            [fixtures_dir / "sample-10.json"],
+            output_dir / "auto-discover",
+            locale_name=locale_name,
+            runtime_name="python",
+        )
+        auto_report = Path(auto_result["reportPath"]).read_text(encoding="utf-8")
+        # With only category+count columns the rerun-conclusion / sources columns must be absent.
+        auto_ok = (
+            ("Rerun Conclusion" not in auto_report and "用例重跑结论" not in auto_report)
+            and ("Source Files" not in auto_report and "来源文件" not in auto_report)
+        )
+        record("Auto-discover temp/report-layout.json", auto_ok,
+               "analyze() picks up temp/report-layout.json when no --report-layout is passed")
+    finally:
+        if auto_layout_backup is not None:
+            auto_layout.write_bytes(auto_layout_backup)
+        elif auto_layout.exists():
+            auto_layout.unlink()
 
     custom_layout = fixtures_dir / "custom-report-layout.json"
     custom_layout.write_text(

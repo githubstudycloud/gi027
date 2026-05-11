@@ -70,6 +70,18 @@ user-invocable: true
 - 当 `dimension-rules` 中 `groupBy` 包含未知字段时，会自动过滤；若过滤后为空，回退默认维度
    `issueCategory / issueSubcategory / rootCauseConclusion`。
 
+## 配置自动发现（重要）
+**用户只需复制 `assets/xxx.example.json` 去掉 `.example` 后缀、然后按需修改**。脚本会按以下顺序自动查找（CLI 参数优先级最高）：
+
+1. CLI 显式传入的 `--field-map / --dimension-rules / --report-layout`
+2. `assets/field-map.json`、`assets/dimension-rules.json`、`assets/report-layout.json`（去掉 `.example` 后的名字）
+3. `temp/field-map.json`、`temp/dimension-rules.json`、`temp/report-layout.json`
+4. 都不存在 → 使用内置默认 `default_field_map()` / 默认维度 / 默认 12 列
+
+这意味着：
+- **AI 用自然语言触发 skill 时，只要你将配置复制为不带 `.example` 的同名文件，AI 不需要额外传参也会优先使用它**。
+- `.example.json` 留作模板，仍不会被加载。
+
 ## 内置一体化测试套件
 `python scripts/log_analysis_core_v2.py test --skill-root . --locale en-US` 会一次性：
 1. 生成 10 / 20 / 200 / 1000 / 5000 五档样例（性能基准数据来源）；
@@ -133,6 +145,7 @@ user-invocable: true
 ## 版本说明
 - `v2.0.0`：性能优化 + 与 v1 等价的功能与产物 + 5000 级 fixture 与 v1 对比基准
 - `v2.1.0`：修正 `key_evdence` 拼写为 `key_evidence`（保留旧拼写兼容）；新增 `problem_subcategory` 顶层映射；报告列支持同义/多语言别名；测试套件一体化（生成+性能+合并+兼容+同义）。
+- `v2.2.0`：配置文件自动发现（`assets/*.json` > `temp/*.json` > 内置默认），AI 自然语言触发时无需传参。
 
 ## 关联的可分发骨架
 如果你想把这套能力直接发给同事使用而不用关心测试/基准的细节，可使用零版本号的轻量骨架
