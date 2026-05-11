@@ -58,6 +58,13 @@ assets/report-layout.example.json →  assets/report-layout.json
 
 脚本会自动按 `assets/*.json` → `temp/*.json` → 内置默认 的顺序加载。**这样 AI 用自然语言触发 skill 也会用上你的配置**，无需在指令里指定路径。CLI 显式 `--xxx` 参数仍然优先级最高。
 
+## 输入格式与优先级
+- **JSON（推荐）**：结构化、可跨字段别名、不丢字段。
+- **TXT 编号分段格式**（v1.1+ 支持）：以「用例失败根因分析结果」为标题，`(1)问题大类`/`(2)问题小类`/`(3)根因诊断结论`/`(4)关键佐证信息`(含 `参考文档特征描述`/`本次日志对应信息`)/`(5)问题修复动作`/`(6)问题修复结论`/`(7)问题重跑结论` 编号分段，第一行 `用例名称: xxx    分析时间: yyy` 同行多 K:V。
+- **TXT 传统 `key: value` 格式** 仍然兼容（空行分隔多记录）。
+- **同 stem 下 JSON+TXT 共存 → 优先 JSON，TXT 被忽略**，避免 N/A 行污染。
+- **如果 TXT 不是上述两种格式**：建议先让大模型按字段名（`case_name / problem_category / problem_subcategory / root_case_conclusion / key_evidence(数组) / fix_action / fix_conclusion / rerun_result / analysis_time` …）转换为 JSON，再调用本 skill。
+
 ## 目录结构（请勿改名）
 ```
 log-analyzer/

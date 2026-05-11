@@ -51,3 +51,8 @@ python3 scripts/benchmark.py
 
 ## 配置零参数自动加载（v2.2+）
 把 `assets/xxx.example.json` 复制并去掉 `.example` 后缀（如 `assets/field-map.json`），脚本会按 `assets/*.json` → `temp/*.json` → 内置默认 的顺序自动加载，**AI 用自然语言触发 skill 时也会自动用上你的配置**，无需在指令里指定路径。CLI `--field-map / --dimension-rules / --report-layout` 仍然优先级最高。
+
+## 输入格式与优先级（v2.3+）
+- **JSON 优先**：同一 stem 下同时存在 `xxx.json` 与 `xxx.txt` 时，TXT 被跳过。
+- **TXT 编号分段格式**（用例失败根因分析结果 → `(1)问题大类` ...）原生支持，不再产生 N/A 行。
+- **其他 TXT** 建议先让大模型转为 JSON 再调用。

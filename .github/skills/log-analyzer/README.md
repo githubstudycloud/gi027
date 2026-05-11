@@ -23,6 +23,7 @@ python scripts/log_analysis_core.py analyze --input-files <file1> <file2> --outp
 - **不要重命名或移动 `scripts/`、`assets/`、`tests/`、`reports/` 目录**。脚本依赖目录相对位置解析资源。
 - 若需要升级，**整目录覆盖** `log-analyzer/` 即可。
 - **想让自然语言触发也走自己的配置**：把 `assets/*.example.json` 复制并改名为同名无 `.example` 的文件（如 `field-map.json`）即可，脚本会自动优先加载。
+- **输入格式优先级**：同名 JSON / TXT 共存 → 优先 JSON、忽略 TXT；TXT 支持「用例失败根因分析结果」编号分段格式与传统 `key: value`；其他格式请先由大模型转为 JSON 。
 - 如需高级特性（v1 vs v2 基准、多平台启动器、Node 兜底），请使用 [../log-analysis-pipeline-v2/](../log-analysis-pipeline-v2/)。
 
 更多细节看 [SKILL.md](./SKILL.md)。

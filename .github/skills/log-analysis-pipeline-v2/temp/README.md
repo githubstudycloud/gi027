@@ -18,6 +18,11 @@
 - v2.2 起脚本会 **自动发现** `assets/field-map.json`、`assets/dimension-rules.json`、`assets/report-layout.json`（优先）或本 `temp/` 下同名文件（次选），AI 以自然语言触发时**无需额外传参**。
 - CLI 显式 `--field-map/--dimension-rules/--report-layout` 仍然优先级最高，便于临时切换。
 
+## TXT 输入相关（v2.3+）
+- 当同 stem 同时有 `xxx.json` 和 `xxx.txt` 时，**优先 JSON、忽略 TXT**，避免 TXT 不完整导致出现 N/A 行。
+- TXT 现支持「用例失败根因分析结果」编号分段格式（`(1)问题大类` … `(7)问题重跑结论`），同时仍兼容传统 `key: value`。
+- 若拿到的是任意自由格式 TXT，**建议先让大模型按字段名转 JSON 再调用**：`case_name / problem_category / problem_subcategory / root_case_conclusion / key_evidence(数组，元素含 reference_doc/log_match) / fix_action / fix_conclusion / rerun_result / analysis_time`。
+
 ## 一键跑通
 在仓库根目录执行：
 

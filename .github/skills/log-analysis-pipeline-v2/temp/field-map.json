@@ -7,7 +7,7 @@
     "keyEvidence": ["key_evidence", "key_evdence", "关键佐证信息"],
     "fixAction": ["fix_action", "问题修复动作"],
     "fixConclusion": ["fix_conclusion", "问题修复结论"],
-    "rerunConclusion": ["rerun_result", "用例重跑结论"],
+    "rerunConclusion": ["rerun_result", "用例重跑结论", "问题重跑结论"],
     "analysisTime": ["analysis_time", "分析时间"],
     "deviceSn": ["version_info.device_sn", "device_sn"],
     "deviceType": ["version_info.device_type", "device_type"],

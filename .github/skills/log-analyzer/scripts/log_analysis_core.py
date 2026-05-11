@@ -53,7 +53,7 @@ def default_field_map() -> dict[str, list[str]]:
         ],
         "fixAction": ["fixAction", "repairAction", "问题修复动作"],
         "fixConclusion": ["fixConclusion", "repairConclusion", "问题修复结论"],
-        "rerunConclusion": ["rerunConclusion", "rerunResult", "用例重跑结论", "rerun_result"],
+        "rerunConclusion": ["rerunConclusion", "rerunResult", "用例重跑结论", "问题重跑结论", "rerun_result"],
         "analysisTime": ["analysisTime", "analysis_time", "分析时间"],
         "deviceSn": ["deviceSn", "device_sn", "version_info.device_sn", "设备SN"],
         "deviceType": ["deviceType", "device_type", "version_info.device_type", "设备类型"],
@@ -367,9 +367,105 @@ def _parse_json_payload(raw: Any) -> list[Any]:
     return [raw]
 
 
+_TXT_TITLE_RE = re.compile(r"^[ \t]*用例失败根因分析结果[ \t]*$", re.MULTILINE)
+_TXT_NUMBERED_HEADER_RE = re.compile(r"^[ \t]*[\(（]\s*(\d+)\s*[\)）]\s*([^\s:：]+(?:[^\s:：]*)?)[ \t]*$")
+_TXT_HEADER_KV_RE = re.compile(r"([^\s:：]+)\s*[:：]\s*(.+?)(?=(?:\s{2,}|\t+)[^\s:：]+\s*[:：]|$)")
+
+
+def _looks_like_numbered_format(text: str) -> bool:
+    if _TXT_TITLE_RE.search(text):
+        return True
+    return bool(re.search(r"[\(（]\s*1\s*[\)）]\s*问题大类", text))
+
+
+def _parse_txt_numbered_block(block: str) -> dict[str, str]:
+    """Parse one record in the new numbered-section format.
+
+    Layout (Chinese):
+        用例失败根因分析结果        (title, optional)
+        用例名称: <name>    分析时间: <time>
+        (1)问题大类
+        <content...>
+        (2)问题小类
+        <content...>
+        (3)根因诊断结论
+        ...
+        (4)关键佐证信息
+        参考文档特征描述: <...>
+        本次日志对应信息: <...>
+        (5)问题修复动作
+        (6)问题修复结论
+        (7)问题重跑结论
+    """
+    rec: dict[str, str] = {}
+    current_key: str | None = None
+    buf: list[str] = []
+
+    def flush() -> None:
+        nonlocal buf, current_key
+        if current_key is not None:
+            text = "\n".join(buf).strip()
+            if text:
+                rec[current_key] = text
+                # If this section has nested K:V lines (e.g. 关键佐证信息), expose them
+                # as their own fields too so alias resolution can pick them up.
+                for sub_line in text.splitlines():
+                    si = sub_line.find(":")
+                    sj = sub_line.find("：")
+                    if si == -1 and sj == -1:
+                        continue
+                    sidx = si if (sj == -1 or (si != -1 and si < sj)) else sj
+                    sk = sub_line[:sidx].strip()
+                    sv = sub_line[sidx + 1:].strip()
+                    if sk and sv and sk not in rec:
+                        rec[sk] = sv
+        buf = []
+
+    for line in block.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            if current_key is not None:
+                buf.append("")
+            continue
+        if stripped == "用例失败根因分析结果":
+            continue
+        m = _TXT_NUMBERED_HEADER_RE.match(line)
+        if m:
+            flush()
+            current_key = m.group(2).strip()
+            continue
+        if current_key is None:
+            # Header K:V line(s) like "用例名称: xxx    分析时间: yyy"
+            for km in _TXT_HEADER_KV_RE.finditer(stripped):
+                k = km.group(1).strip()
+                v = km.group(2).strip()
+                if k:
+                    rec[k] = v
+        else:
+            buf.append(line)
+    flush()
+    return rec
+
+
 def _parse_txt(text: str) -> list[dict[str, Any]]:
     if not text:
         return []
+    if _looks_like_numbered_format(text):
+        # Split on the title line; each chunk is one record.
+        if _TXT_TITLE_RE.search(text):
+            chunks = _TXT_TITLE_RE.split(text)
+        else:
+            chunks = [text]
+        out: list[dict[str, Any]] = []
+        for chunk in chunks:
+            if not chunk.strip():
+                continue
+            rec = _parse_txt_numbered_block(chunk)
+            if rec:
+                out.append(rec)
+        if out:
+            return out
+        # fall through to legacy parser if numbered parser yielded nothing
     blocks = _BLOCK_SPLIT_RE.split(text.strip())
     out: list[dict[str, Any]] = []
     for block in blocks:
@@ -815,13 +911,11 @@ def analyze(input_files: list[Path], output_dir: Path,
     for stem, pair in stems.items():
         json_info = pair.get(".json")
         txt_info = pair.get(".txt")
-        if json_info and txt_info and len(json_info["records"]) == 1 and len(txt_info["records"]) == 1:
-            merged = dict(txt_info["records"][0])
-            for k, v in json_info["records"][0].items():
-                if v != "N/A" or merged.get(k, "N/A") == "N/A":
-                    merged[k] = v
-            merged["sourceFile"] = f"{json_info['path']} | {txt_info['path']}"
-            all_records.append(merged)
+        # Prefer JSON whenever both exist for the same stem (TXT is treated as
+        # a fallback / human-readable view of the same record). This avoids
+        # producing N/A rows when TXT parsing is incomplete or formats drift.
+        if json_info and txt_info:
+            all_records.extend(json_info["records"])
             paired_stems.add(stem)
 
     for info in parsed_by_file.values():
@@ -974,7 +1068,59 @@ def run_test_suite(skill_root: Path, locale_name: str = DEFAULT_LOCALE) -> dict[
     record(
         "Structured pair merge",
         structured_ok,
-        f"paired json/txt merged to {structured_result['totalRecords']} record(s); execution groups={structured_result['executionGroups']}; subcategory captured"
+        f"json wins when paired with txt; records={structured_result['totalRecords']}; execution groups={structured_result['executionGroups']}; subcategory captured"
+    )
+
+    # New: numbered-section TXT format (用例失败根因分析结果) — TXT alone must
+    # produce a complete row without N/A on the key fields.
+    numbered_txt = fixtures_dir / "numbered-format-case.txt"
+    numbered_txt.write_text(
+        "\n".join([
+            "用例失败根因分析结果",
+            "用例名称: Auth-Numbered-001    分析时间: 2026-05-10 09:00:00",
+            "(1)问题大类",
+            "Network",
+            "(2)问题小类",
+            "Timeout",
+            "(3)根因诊断结论",
+            "Upstream gateway returns 504 under burst load",
+            "(4)关键佐证信息",
+            "参考文档特征描述: gateway-runbook.md 504 章节",
+            "本次日志对应信息: 504 Gateway Timeout @ 10:00:11",
+            "(5)问题修复动作",
+            "Increase upstream timeout to 15s and add retry",
+            "(6)问题修复结论",
+            "Fixed in build 4.0.2",
+            "(7)问题重跑结论",
+            "PASS",
+        ]),
+        encoding="utf-8",
+    )
+    numbered_result = analyze(
+        [numbered_txt],
+        output_dir / "numbered-format",
+        locale_name=locale_name,
+        runtime_name="python",
+    )
+    numbered_report = Path(numbered_result["reportPath"]).read_text(encoding="utf-8")
+    numbered_normalized = json.loads(Path(numbered_result["normalizedPath"]).read_text(encoding="utf-8"))
+    numbered_rec = numbered_normalized[0] if numbered_normalized else {}
+    numbered_ok = (
+        numbered_result["totalRecords"] == 1
+        and numbered_rec.get("issueCategory") == "Network"
+        and numbered_rec.get("issueSubcategory") == "Timeout"
+        and "Upstream gateway" in numbered_rec.get("rootCauseConclusion", "")
+        and "504 Gateway Timeout" in numbered_rec.get("keyEvidence", "")
+        and numbered_rec.get("fixAction", "N/A") != "N/A"
+        and numbered_rec.get("fixConclusion", "N/A") != "N/A"
+        and numbered_rec.get("rerunConclusion", "N/A") != "N/A"
+        and "Auth-Numbered-001" in numbered_report
+        and "Upstream gateway" in numbered_report
+    )
+    record(
+        "Numbered TXT format (用例失败根因分析结果)",
+        numbered_ok,
+        "TXT-only numbered-section input produces a complete row, no N/A on category/subcategory/rootCause/evidence/fix/rerun"
     )
 
     legacy_typo_json = fixtures_dir / "legacy-key-evdence.json"

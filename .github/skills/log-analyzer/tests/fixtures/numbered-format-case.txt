@@ -1,0 +1,17 @@
+用例失败根因分析结果
+用例名称: Auth-Numbered-001    分析时间: 2026-05-10 09:00:00
+(1)问题大类
+Network
+(2)问题小类
+Timeout
+(3)根因诊断结论
+Upstream gateway returns 504 under burst load
+(4)关键佐证信息
+参考文档特征描述: gateway-runbook.md 504 章节
+本次日志对应信息: 504 Gateway Timeout @ 10:00:11
+(5)问题修复动作
+Increase upstream timeout to 15s and add retry
+(6)问题修复结论
+Fixed in build 4.0.2
+(7)问题重跑结论
+PASS
