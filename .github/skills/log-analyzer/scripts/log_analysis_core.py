@@ -819,6 +819,7 @@ def _build_report(rows: list[_Group], exec_rows: list[_ExecGroup], total_records
     add("")
     add(f"- {locale['language']}: {locale_name}")
     add(f"- {locale['runtime']}: {runtime_name}")
+    add(f"- {locale.get('generatedAt', 'Generated at')}: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     add("")
     add(f"## {locale['overview']}")
     add("")
@@ -923,7 +924,8 @@ def analyze(input_files: list[Path], output_dir: Path,
             locale_file: Path | None = None,
             runtime_name: str = "python",
             timestamped_output: bool = False,
-            run_id: str | None = None) -> dict[str, Any]:
+            run_id: str | None = None,
+            generate_html: bool = True) -> dict[str, Any]:
     # Optionally route artifacts into a per-run timestamped subdirectory so
     # successive `analyze` invocations don't clobber prior reports. The CLI
     # `analyze` subcommand enables this by default; the in-process test suite
@@ -1016,8 +1018,19 @@ def analyze(input_files: list[Path], output_dir: Path,
         _build_report(rows, exec_rows, len(all_records), len(resolved), report_layout, locale, locale_name, runtime_name),
         encoding="utf-8",
     )
+    html_path: Path | None = None
+    if generate_html:
+        # Lazy import so the module stays usable even if report_html.py is missing.
+        try:
+            from report_html import convert_file as _convert_html  # type: ignore
+        except ImportError:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from report_html import convert_file as _convert_html  # type: ignore
+        html_path = output_dir / "log-analysis-report.html"
+        _convert_html(report_path, html_path, title=locale.get("title"))
     return {
         "reportPath": str(report_path),
+        "htmlPath": str(html_path) if html_path else None,
         "normalizedPath": str(normalized_path),
         "summaryPath": str(summary_path),
         "outputDir": str(output_dir),
@@ -1304,6 +1317,48 @@ def run_test_suite(skill_root: Path, locale_name: str = DEFAULT_LOCALE) -> dict[
         "analyze(timestamped_output=True) writes into <output-dir>/YYYYMMDD-HHMMSS/ so successive runs don't overwrite",
     )
 
+    # Test: styled HTML report is emitted alongside the Markdown report and
+    # contains the expected structural cues (sticky-header table, TOC, badges).
+    html_path_str = ts_result.get("htmlPath")
+    html_ok = False
+    if html_path_str:
+        html_file = Path(html_path_str)
+        if html_file.exists():
+            html_text = html_file.read_text(encoding="utf-8")
+            html_ok = (
+                "<style>" in html_text
+                and "<table>" in html_text
+                and "table-wrap" in html_text
+                and "<nav class='toc'" in html_text
+                and ("badge-bucket" in html_text or "badge-pass" in html_text or "badge-fail" in html_text)
+            )
+    record(
+        "HTML report generated alongside Markdown",
+        html_ok,
+        "analyze() default emits log-analysis-report.html with sticky-header tables, TOC and PASS/FAIL/duration-bucket badges",
+    )
+
+    # Test: --no-html / generate_html=False suppresses HTML emission.
+    nohtml_out = output_dir / "no-html"
+    nohtml_res = analyze(
+        [loose_txt],
+        nohtml_out,
+        locale_name=locale_name,
+        runtime_name="python",
+        generate_html=False,
+    )
+    nohtml_dir = Path(nohtml_res["outputDir"])
+    nohtml_ok = (
+        nohtml_res.get("htmlPath") is None
+        and not (nohtml_dir / "log-analysis-report.html").exists()
+        and (nohtml_dir / "log-analysis-report.md").exists()
+    )
+    record(
+        "generate_html=False suppresses HTML",
+        nohtml_ok,
+        "analyze(generate_html=False) writes only Markdown; htmlPath is None and no .html file is produced",
+    )
+
     legacy_typo_json = fixtures_dir / "legacy-key-evdence.json"
     legacy_typo_json.write_text(
         json.dumps(
@@ -1518,6 +1573,9 @@ def main() -> None:
     a.add_argument("--run-id", default=None,
                    help="Explicit subdir name to use instead of an auto timestamp "
                         "(only meaningful without --no-timestamp).")
+    a.add_argument("--no-html", action="store_true",
+                   help="Skip writing log-analysis-report.html (default: emit a "
+                        "styled HTML report next to the Markdown one).")
     g = sub.add_parser("generate")
     g.add_argument("--output-dir", required=True)
     t = sub.add_parser("test")
@@ -1541,6 +1599,7 @@ def main() -> None:
             args.runtime,
             timestamped_output=not args.no_timestamp,
             run_id=args.run_id,
+            generate_html=not args.no_html,
         )
         print(json.dumps(res, ensure_ascii=False, indent=2))
     elif args.cmd == "generate":

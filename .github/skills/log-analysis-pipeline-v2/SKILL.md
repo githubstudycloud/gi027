@@ -149,6 +149,20 @@ user-invocable: true
 - `v2.3.0`：TXT 解析器支持「用例失败根因分析结果」编号分段格式；同 stem 下 JSON+TXT 共存时优先 JSON、忽略 TXT，消除报告中的 N/A 行。
 - `v2.4.0`：TXT 宽松格式鲁棒解析——`用例名称`/`分析时间` 可各占一行；`(3)根因诊断结论` 起任意 section 正文允许多行、空行、不规则空白；正文中的冒号（如 `10:00:11`、`经查链路：…`、`504 Gateway Timeout @ 10:00:11`）不会被误识别为 K:V；`(4)关键佐证信息` 段内仅识别 `参考文档特征描述`/`本次日志对应信息` 两个子项 key，且子项 value 支持跨多行；其他段整段保留。
 - `v2.5.0`：跨工具适配——`test` 子命令的 `--skill-root` 改为可选，默认从脚本自身位置（`__file__`）推导，因此放在 `.github/skills/`、`.claude/skills/`、`.opencode/skills/` 或任何其他目录都能直接 `python scripts/log_analysis_core_v2.py test --locale zh-CN` 跑通，无需关心宿主工具。`analyze` 子命令默认把产物写入 `<output-dir>/YYYYMMDD-HHMMSS/` 时间戳子目录，避免重复运行覆盖历史报告；如需关闭加 `--no-timestamp`，或用 `--run-id <name>` 指定固定子目录名。返回 JSON 新增 `outputDir` 字段方便定位实际落盘路径。
+- `v2.6.0`：数据量大时 Markdown 表格读起来吃力，因此新增 **HTML 视图**：`analyze` 默认在产物目录里同时写出 `log-analysis-report.html`（styled，含 sticky 表头、斑马纹、TOC、PASS/FAIL/耗时分桶徽章、light/dark 自适应、移动端响应式），加 `--no-html` 可关闭；返回 JSON 新增 `htmlPath` 字段。HTML 渲染由独立脚本 [scripts/report_html.py](./scripts/report_html.py) 提供，可单独运行 `python scripts/report_html.py --input <报告>.md --output <报告>.html` 将任何同结构的 Markdown 报告转成同款 HTML。报告头部还会写入 `生成时间` 一行，方便比对多份历史报告。
+
+## 「耗时分桶」是什么？
+执行信息聚类表里的 **耗时分桶 / Duration Bucket** 列，是把每个用例的 `case_execution_info.duration` 归到固定区间后再做聚合，规则：
+
+| 真实耗时 | 分桶值 |
+|---|---|
+| 未提供或解析失败 | `N/A` |
+| `< 1` 秒 | `<1s` |
+| `[1, 5)` 秒 | `1-5s` |
+| `[5, 30)` 秒 | `5-30s` |
+| `≥ 30` 秒 | `>=30s` |
+
+支持的输入形式：`12.4s`、`450ms`、纯数字（按秒）。分桶后，相同「执行结果 × 错误信息 × 耗时分桶」的用例被合并成同一行，方便一眼看出「同一类错误是否都耗时 ≥30s」「PASS 用例是否大多 <1s」之类的整体规律，而不是被一堆毫秒精度的数字淹没。
 
 ## 关联的可分发骨架
 如果你想把这套能力直接发给同事使用而不用关心测试/基准的细节，可使用零版本号的轻量骨架

@@ -34,5 +34,6 @@
   "ready": "Ready for release: commit, push, tag.",
   "fixBeforeRelease": "Fix failed checks before release.",
   "language": "Language",
-  "runtime": "Runtime"
+  "runtime": "Runtime",
+  "generatedAt": "Generated at"
 }

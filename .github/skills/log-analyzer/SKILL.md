@@ -38,6 +38,36 @@ python <skills-root>/log-analyzer/scripts/log_analysis_core.py analyze `
   --output-dir reports/output `
   --locale zh-CN
 # 如需写入固定目录（CI 等），加 --no-timestamp；或用 --run-id <name> 自定义子目录名
+# 如不需要 HTML 视图，加 --no-html；默认会和 .md 一起写出 log-analysis-report.html
+```
+
+## 「耗时分桶 / Duration Bucket」
+执行信息聚类表里的 **耗时分桶** 列把每个用例的 `case_execution_info.duration` 归到固定区间再聚合：
+
+| 真实耗时 | 分桶值 |
+|---|---|
+| 未提供或解析失败 | `N/A` |
+| `< 1` 秒 | `<1s` |
+| `[1, 5)` 秒 | `1-5s` |
+| `[5, 30)` 秒 | `5-30s` |
+| `≥ 30` 秒 | `>=30s` |
+
+支持 `12.4s` / `450ms` / 纯数字（按秒）。分桶后，相同「执行结果 × 错误信息 × 耗时分桶」的用例合并成同一行，方便一眼看出「同类错误是否都 ≥30s」「PASS 用例是否大多 <1s」之类的规律。
+
+## 报告产物
+默认每次 `analyze` 会写入：
+
+- `log-analysis-report.md` — 纯 Markdown 表格报告
+- `log-analysis-report.html` — 同源 HTML 视图（sticky 表头、斑马纹、TOC、PASS/FAIL/耗时分桶徽章、light/dark 自适应、移动端响应式），数据量大时阅读体验明显好于 Markdown
+- `normalized-records.json` — 归一化后的全量记录
+- `summary.json` — 报告级摘要
+
+也可独立把任意同结构 Markdown 报告转成同款 HTML：
+
+```powershell
+python <skills-root>/log-analyzer/scripts/report_html.py `
+  --input path\to\log-analysis-report.md `
+  --output path\to\log-analysis-report.html
 ```
 
 ## 配置化报告列（同义兼容）

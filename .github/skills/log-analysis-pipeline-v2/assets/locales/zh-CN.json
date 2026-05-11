@@ -34,5 +34,6 @@
   "ready": "可以正式发布：提交、推送、打 tag。",
   "fixBeforeRelease": "请先修复失败项，再发布。",
   "language": "语言",
-  "runtime": "运行时"
+  "runtime": "运行时",
+  "generatedAt": "生成时间"
 }
