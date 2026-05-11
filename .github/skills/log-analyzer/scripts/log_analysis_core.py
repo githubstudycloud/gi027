@@ -1,6 +1,6 @@
-"""Log analysis core v2 — performance-tuned, behavior-equivalent to v1.
+"""Log analysis core — performance-tuned, behavior-equivalent to v1.
 
-Key optimizations vs v1 (log-analysis-pipeline):
+Performance-tuned core (formerly v2) (log-analysis-pipeline):
   1. Field alias resolution uses a flattened `{alias: canonical}` dict (built once),
      eliminating the per-record nested loop over alias lists.
   2. TXT parser uses `str.split` with `:`/`：` fast paths instead of `re.match`

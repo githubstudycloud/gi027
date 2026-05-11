@@ -44,3 +44,7 @@ python3 scripts/benchmark.py
 - Markdown 表头、列顺序、`<br>` 多行渲染、`N/A` 占位、维度排序键全部一致
 - normalized-records.json 字段集合相同，仅 v2 默认紧凑格式
 - summary.json 字段一致
+
+## 想直接发给同事用？
+本目录用于**测试/验证/基准对比**。如果要把能力直接发给同事使用，请使用零版本号的轻量骨架：
+[../log-analyzer/](../log-analyzer/) — 同一份核心代码，但目录精简、文档极简、便于整目录覆盖升级。

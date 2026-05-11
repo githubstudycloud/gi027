@@ -1,5 +1,6 @@
 case_name: Auth-Timeout-001
 problem_category: Network
+problem_subcategory: Timeout
 root_case_conclusion: Upstream timeout
 fix_action: Increase timeout to 15s
 rerun_result: PASS

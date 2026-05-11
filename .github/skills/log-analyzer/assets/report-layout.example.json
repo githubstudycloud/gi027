@@ -1,0 +1,6 @@
+{
+  "mode": "single-table",
+  "allowMultiCaseCells": true,
+  "tableColumns": ["category", "subcategory", "rootCause", "count", "cases", "evidence", "fixAction", "fixConclusion", "rerunConclusion", "caseResult", "caseErrorMessage", "sources"],
+  "performanceFixtures": [10, 20, 200]
+}

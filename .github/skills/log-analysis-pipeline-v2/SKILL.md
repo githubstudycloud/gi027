@@ -12,10 +12,10 @@ user-invocable: true
 渲染单表多行的 Markdown + 执行信息聚类表 → 输出 normalized JSON / summary JSON。
 
 重点适配字段（优先）：
-- 顶层：`case_name`、`problem_category`、`root_case_conclusion`、`fix_action`、`rerun_result`、`analysis_time`
+- 顶层：`case_name`、`problem_category`、`problem_subcategory`、`root_case_conclusion`、`fix_action`、`rerun_result`、`analysis_time`
 - 嵌套：`version_info.{device_sn,device_type,platform_version,hy_version}`
 - 嵌套：`case_execution_info.{case_name,begin_time,end_time,duration,result,error_message}`
-- 嵌套数组：`key_evdence[]`（每项支持 `reference_doc` + `log_match`）
+- 嵌套数组：`key_evidence[]`（每项支持 `reference_doc` + `log_match`，**兼容旧拼写 `key_evdence`**）
 
 输入假设增强：
 - 支持 JSON 和 TXT 成对输入（通常同名不同后缀），且每个文件仅 1 个用例。
@@ -63,9 +63,21 @@ user-invocable: true
 6. 与 v1 对比：执行 [scripts/benchmark.py](./scripts/benchmark.py)
 
 可选参数增强：
-- `--report-layout <path>`：指定报告布局配置（列顺序/列集合）。
+- `--report-layout <path>`：指定报告布局配置（列顺序/列集合）。**列名支持同义/多语言别名**：
+  - `problem_category` / `issueCategory` / `问题大类` 都映射到同一列。
+  - `执行结果` / `result` / `caseResult` 都映射到同一列。
+  - `key_evidence` / `key_evdence` / `evidence` / `关键佐证信息` 都映射到同一列。
 - 当 `dimension-rules` 中 `groupBy` 包含未知字段时，会自动过滤；若过滤后为空，回退默认维度
    `issueCategory / issueSubcategory / rootCauseConclusion`。
+
+## 内置一体化测试套件
+`python scripts/log_analysis_core_v2.py test --skill-root . --locale en-US` 会一次性：
+1. 生成 10 / 20 / 200 / 1000 / 5000 五档样例（性能基准数据来源）；
+2. 跑结构化 JSON+TXT 成对合并校验（含 `problem_subcategory` 与 `key_evidence`）；
+3. 跑历史拼写 `key_evdence` 兼容校验；
+4. 跑同义列名 / 多语言列名报告布局校验；
+5. 跑双语 locale 报告校验；
+6. 跑五档规模的端到端性能采样并写入 `reports/test-report.md` 性能表。
 
 ## 结构化输入示例（单用例）
 
@@ -73,8 +85,9 @@ user-invocable: true
 {
    "case_name": "Login-Timeout-001",
    "problem_category": "Network",
+   "problem_subcategory": "Timeout",
    "root_case_conclusion": "Upstream gateway timeout",
-   "key_evdence": [
+   "key_evidence": [
       {"reference_doc": "gw-logs-20260509.txt", "log_match": "504 Gateway Timeout"}
    ],
    "fix_action": "Increase upstream timeout to 15s",
@@ -119,3 +132,8 @@ user-invocable: true
 
 ## 版本说明
 - `v2.0.0`：性能优化 + 与 v1 等价的功能与产物 + 5000 级 fixture 与 v1 对比基准
+- `v2.1.0`：修正 `key_evdence` 拼写为 `key_evidence`（保留旧拼写兼容）；新增 `problem_subcategory` 顶层映射；报告列支持同义/多语言别名；测试套件一体化（生成+性能+合并+兼容+同义）。
+
+## 关联的可分发骨架
+如果你想把这套能力直接发给同事使用而不用关心测试/基准的细节，可使用零版本号的轻量骨架
+[../log-analyzer/SKILL.md](../log-analyzer/SKILL.md)。骨架与 v2 行为一致，但目录精简、文档极简，便于后续整目录覆盖升级。

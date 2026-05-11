@@ -1,0 +1,12 @@
+# Generated outputs — do not commit
+reports/output/
+reports/test-report.md
+reports/test-report.*.md
+tests/fixtures/sample-*.json
+tests/fixtures/sample-*.txt
+tests/fixtures/structured-single-case.*
+tests/fixtures/legacy-key-evdence.json
+tests/fixtures/custom-report-layout.json
+tests/fixtures/synonym-report-layout.json
+__pycache__/
+*.pyc
