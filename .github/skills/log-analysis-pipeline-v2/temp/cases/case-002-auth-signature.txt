@@ -1,8 +1,17 @@
-case_name: Auth-Signature-014
-problem_category: Correctness
-problem_subcategory: Signature
-root_case_conclusion: Time skew between client and server exceeded 30s, signature rejected
-fix_action: Force NTP sync on edge devices
-rerun_result: PASS
-result: FAIL
-error_message: InvalidSignature
+用例失败根因分析结果
+用例名称: Auth-Signature-014    分析时间: 2026-05-09 10:22:15
+(1)问题大类
+Correctness
+(2)问题小类
+Signature
+(3)根因诊断结论
+客户端与服务端时间漂移超过 30s，鉴权签名因时间戳偏差被服务端拒绝。
+(4)关键佐证信息
+参考文档特征描述: 鉴权服务签名校验规范要求时间戳偏差不超过 30s（auth-design.md §4.2）
+本次日志对应信息: auth-svc.log 报错 InvalidSignature: timestamp drift 47s
+(5)问题修复动作
+在边缘设备上强制 NTP 同步，并把心跳里加入服务端时间校验
+(6)问题修复结论
+NTP 同步后连续 2h 复测无签名失败
+(7)问题重跑结论
+PASS

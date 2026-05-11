@@ -1,10 +1,17 @@
-case_name: Login-Timeout-001
-problem_category: Network
-problem_subcategory: Timeout
-root_case_conclusion: Upstream gateway timeout under burst load
-fix_action: Increase upstream timeout from 5s to 15s and enable retry-once
-rerun_result: PASS
-analysis_time: 2026-05-09 10:01:02
-device_sn: SN-001
-result: FAIL
-error_message: HTTP 504
+用例失败根因分析结果
+用例名称: Login-Timeout-001    分析时间: 2026-05-09 10:01:02
+(1)问题大类
+Network
+(2)问题小类
+Timeout
+(3)根因诊断结论
+突发流量下上游网关超时，5s 超时阈值不足以覆盖 p99=12.4s 的尾延迟。
+(4)关键佐证信息
+参考文档特征描述: gw-logs-20260509.txt 中连续出现 504 Gateway Timeout，metrics.csv 记录 p99 异常升至 12.4s
+本次日志对应信息: 504 Gateway Timeout @ 10:00:11；同一窗口内 p99=12.4s
+(5)问题修复动作
+将上游超时从 5s 提升至 15s，并启用 retry-once 重试策略
+(6)问题修复结论
+线上灰度 30 分钟无 504，已全量验证通过
+(7)问题重跑结论
+PASS
