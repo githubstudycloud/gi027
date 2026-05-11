@@ -1,0 +1,28 @@
+{
+  "case_name": "Cache-Memory-Leak-007",
+  "problem_category": "Stability",
+  "problem_subcategory": "Memory",
+  "root_case_conclusion": "Local cache eviction policy not triggered, heap grew to 1.8G then OOM",
+  "key_evdence": [
+    {"reference_doc": "heap-dump-20260509.hprof", "log_match": "java.lang.OutOfMemoryError: Java heap space"},
+    {"reference_doc": "gc.log", "log_match": "Full GC (Allocation Failure)"}
+  ],
+  "fix_action": "Switch cache to Caffeine with maximumSize=10000 + expireAfterWrite=10m",
+  "fix_conclusion": "Heap stable at 600M after 24h soak",
+  "rerun_result": "PASS",
+  "analysis_time": "2026-05-09 11:05:00",
+  "version_info": {
+    "device_sn": "SN-007",
+    "device_type": "edge-gateway",
+    "platform_version": "4.0.1",
+    "hy_version": "2.3.1"
+  },
+  "case_execution_info": {
+    "case_name": "Cache-Memory-Leak-007",
+    "begin_time": "2026-05-09 09:00:00",
+    "end_time": "2026-05-09 11:00:00",
+    "duration": "7200s",
+    "result": "FAIL",
+    "error_message": "OutOfMemoryError"
+  }
+}

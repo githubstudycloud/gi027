@@ -1,0 +1,28 @@
+{
+  "case_name": "Login-Timeout-001",
+  "problem_category": "Network",
+  "problem_subcategory": "Timeout",
+  "root_case_conclusion": "Upstream gateway timeout under burst load",
+  "key_evidence": [
+    {"reference_doc": "gw-logs-20260509.txt", "log_match": "504 Gateway Timeout"},
+    {"reference_doc": "metrics.csv", "log_match": "p99=12.4s"}
+  ],
+  "fix_action": "Increase upstream timeout from 5s to 15s and enable retry-once",
+  "fix_conclusion": "Online verified",
+  "rerun_result": "PASS",
+  "analysis_time": "2026-05-09 10:01:02",
+  "version_info": {
+    "device_sn": "SN-001",
+    "device_type": "edge-gateway",
+    "platform_version": "4.0.1",
+    "hy_version": "2.3.0"
+  },
+  "case_execution_info": {
+    "case_name": "Login-Timeout-001",
+    "begin_time": "2026-05-09 10:00:00",
+    "end_time": "2026-05-09 10:00:12",
+    "duration": "12s",
+    "result": "FAIL",
+    "error_message": "HTTP 504"
+  }
+}

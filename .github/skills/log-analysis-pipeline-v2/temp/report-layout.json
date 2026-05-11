@@ -1,0 +1,15 @@
+{
+  "mode": "single-table",
+  "allowMultiCaseCells": true,
+  "tableColumns": [
+    "problem_category",
+    "problem_subcategory",
+    "根因诊断结论",
+    "count",
+    "用例名称",
+    "key_evidence",
+    "fix_action",
+    "执行结果",
+    "错误信息"
+  ]
+}

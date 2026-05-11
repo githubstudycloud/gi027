@@ -4,6 +4,7 @@ __pycache__/
 node_modules/
 reports/output/
 reports/.bench/
+temp/output/
 tests/fixtures/custom-report-layout.json
 tests/fixtures/synonym-report-layout.json
 tests/fixtures/legacy-key-evdence.json

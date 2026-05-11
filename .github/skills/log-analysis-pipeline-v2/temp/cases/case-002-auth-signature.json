@@ -1,0 +1,27 @@
+{
+  "case_name": "Auth-Signature-014",
+  "problem_category": "Correctness",
+  "problem_subcategory": "Signature",
+  "root_case_conclusion": "Time skew between client and server exceeded 30s, signature rejected",
+  "key_evidence": [
+    {"reference_doc": "auth-svc.log", "log_match": "InvalidSignature: timestamp drift 47s"}
+  ],
+  "fix_action": "Force NTP sync on edge devices",
+  "fix_conclusion": "Verified after NTP sync",
+  "rerun_result": "PASS",
+  "analysis_time": "2026-05-09 10:22:15",
+  "version_info": {
+    "device_sn": "SN-014",
+    "device_type": "handheld-terminal",
+    "platform_version": "4.0.1",
+    "hy_version": "2.3.0"
+  },
+  "case_execution_info": {
+    "case_name": "Auth-Signature-014",
+    "begin_time": "2026-05-09 10:21:50",
+    "end_time": "2026-05-09 10:21:53",
+    "duration": "3s",
+    "result": "FAIL",
+    "error_message": "InvalidSignature"
+  }
+}

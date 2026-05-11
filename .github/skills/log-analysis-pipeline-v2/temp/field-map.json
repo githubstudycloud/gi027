@@ -1,0 +1,22 @@
+{
+  "fields": {
+    "useCaseName": ["case_name", "用例名称", "case_execution_info.case_name"],
+    "issueCategory": ["problem_category", "问题大类"],
+    "issueSubcategory": ["problem_subcategory", "问题小类"],
+    "rootCauseConclusion": ["root_case_conclusion", "根因诊断结论"],
+    "keyEvidence": ["key_evidence", "key_evdence", "关键佐证信息"],
+    "fixAction": ["fix_action", "问题修复动作"],
+    "fixConclusion": ["fix_conclusion", "问题修复结论"],
+    "rerunConclusion": ["rerun_result", "用例重跑结论"],
+    "analysisTime": ["analysis_time", "分析时间"],
+    "deviceSn": ["version_info.device_sn", "device_sn"],
+    "deviceType": ["version_info.device_type", "device_type"],
+    "platformVersion": ["version_info.platform_version", "platform_version"],
+    "hyVersion": ["version_info.hy_version", "hy_version"],
+    "caseBeginTime": ["case_execution_info.begin_time", "begin_time"],
+    "caseEndTime": ["case_execution_info.end_time", "end_time"],
+    "caseDuration": ["case_execution_info.duration", "duration"],
+    "caseResult": ["case_execution_info.result", "result"],
+    "caseErrorMessage": ["case_execution_info.error_message", "error_message"]
+  }
+}

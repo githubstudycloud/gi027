@@ -1,0 +1,8 @@
+case_name: Auth-Signature-014
+problem_category: Correctness
+problem_subcategory: Signature
+root_case_conclusion: Time skew between client and server exceeded 30s, signature rejected
+fix_action: Force NTP sync on edge devices
+rerun_result: PASS
+result: FAIL
+error_message: InvalidSignature

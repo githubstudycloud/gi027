@@ -1,0 +1,8 @@
+case_name: Cache-Memory-Leak-007
+problem_category: Stability
+problem_subcategory: Memory
+root_case_conclusion: Local cache eviction policy not triggered, heap grew to 1.8G then OOM
+fix_action: Switch cache to Caffeine with maximumSize=10000 + expireAfterWrite=10m
+rerun_result: PASS
+result: FAIL
+error_message: OutOfMemoryError
