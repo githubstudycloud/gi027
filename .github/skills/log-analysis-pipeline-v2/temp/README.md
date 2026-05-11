@@ -24,21 +24,22 @@
 - 若拿到的是任意自由格式 TXT，**建议先让大模型按字段名转 JSON 再调用**：`case_name / problem_category / problem_subcategory / root_case_conclusion / key_evidence(数组，元素含 reference_doc/log_match) / fix_action / fix_conclusion / rerun_result / analysis_time`。
 
 ## 一键跑通
-在仓库根目录执行：
+> 先 `cd` 到 skill 目录再执行；`<skills-root>` = 你实际安装 skill 的根目录（GitHub Copilot=`.github/skills`，Claude Code=`.claude/skills`，OpenCode=`.opencode/skills`，Codex 等同理）。脚本通过 `__file__` 自动定位资源，所以下面所有相对路径在任何宿主下都成立。
 
 ```powershell
-python .github/skills/log-analysis-pipeline-v2/scripts/log_analysis_core_v2.py analyze `
+cd <skills-root>/log-analysis-pipeline-v2
+python scripts/log_analysis_core_v2.py analyze `
   --input-files `
-    .github/skills/log-analysis-pipeline-v2/temp/cases/case-001-login-timeout.json `
-    .github/skills/log-analysis-pipeline-v2/temp/cases/case-001-login-timeout.txt `
-    .github/skills/log-analysis-pipeline-v2/temp/cases/case-002-auth-signature.json `
-    .github/skills/log-analysis-pipeline-v2/temp/cases/case-002-auth-signature.txt `
-    .github/skills/log-analysis-pipeline-v2/temp/cases/case-003-cache-leak-legacy-typo.json `
-    .github/skills/log-analysis-pipeline-v2/temp/cases/case-003-cache-leak-legacy-typo.txt `
-  --field-map       .github/skills/log-analysis-pipeline-v2/temp/field-map.json `
-  --dimension-rules .github/skills/log-analysis-pipeline-v2/temp/dimension-rules.json `
-  --report-layout   .github/skills/log-analysis-pipeline-v2/temp/report-layout.json `
-  --output-dir      .github/skills/log-analysis-pipeline-v2/temp/output `
+    temp/cases/case-001-login-timeout.json `
+    temp/cases/case-001-login-timeout.txt `
+    temp/cases/case-002-auth-signature.json `
+    temp/cases/case-002-auth-signature.txt `
+    temp/cases/case-003-cache-leak-legacy-typo.json `
+    temp/cases/case-003-cache-leak-legacy-typo.txt `
+  --field-map       temp/field-map.json `
+  --dimension-rules temp/dimension-rules.json `
+  --report-layout   temp/report-layout.json `
+  --output-dir      temp/output `
   --locale zh-CN
 ```
 

@@ -20,21 +20,21 @@
 | Custom report layout | PASS | Validated configurable report columns via --report-layout |
 | Locale en-US | PASS | Validated locale-specific headings: en-US |
 | Locale zh-CN | PASS | Validated locale-specific headings: zh-CN |
-| Analyze 10 | PASS | 10 records processed in 2.02 ms |
-| Analyze 20 | PASS | 20 records processed in 2.52 ms |
-| Analyze 200 | PASS | 200 records processed in 12.3 ms |
-| Analyze 1000 | PASS | 1000 records processed in 98.85 ms |
-| Analyze 5000 | PASS | 5000 records processed in 1580.81 ms |
+| Analyze 10 | PASS | 10 records processed in 1.86 ms |
+| Analyze 20 | PASS | 20 records processed in 2.24 ms |
+| Analyze 200 | PASS | 200 records processed in 12.0 ms |
+| Analyze 1000 | PASS | 1000 records processed in 96.86 ms |
+| Analyze 5000 | PASS | 5000 records processed in 1586.44 ms |
 
 ## 性能
 
 | 数据集 | 耗时（ms） | 记录总数 | 分组数量 |
 |---|---:|---:|---:|
-| 10 | 2.02 | 1 | 1 |
-| 20 | 2.52 | 1 | 1 |
-| 200 | 12.3 | 1 | 1 |
-| 1000 | 98.85 | 1 | 1 |
-| 5000 | 1580.81 | 1 | 1 |
+| 10 | 1.86 | 1 | 1 |
+| 20 | 2.24 | 1 | 1 |
+| 200 | 12.0 | 1 | 1 |
+| 1000 | 96.86 | 1 | 1 |
+| 5000 | 1586.44 | 1 | 1 |
 
 ## 结论
 

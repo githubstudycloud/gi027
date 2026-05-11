@@ -10,10 +10,12 @@
 - PowerShell ≥ 5.1（Windows 默认自带，命令名 `powershell`）
 - Linux/macOS：bash + python3
 
+> 下文 `<skills-root>` = 你实际安装 skill 的目录：`.github/skills`（Copilot）/ `.claude/skills`（Claude Code）/ `.opencode/skills`（OpenCode）/ Codex 等。脚本通过 `__file__` 自动定位资源，所以只需 `cd` 到 skill 目录后用相对路径调用即可。
+
 ## 2. 三步跑通
 ```powershell
 # Windows
-cd .github/skills/log-analysis-pipeline-v2
+cd <skills-root>/log-analysis-pipeline-v2
 python scripts/run-skill-tests.py . zh-CN     # ① 跑测试 + 生成 fixture
 python scripts/benchmark.py                    # ② 跑 v1 vs v2 性能对比
 notepad reports/benchmark.md                   # ③ 看对比报告
@@ -21,7 +23,7 @@ notepad reports/benchmark.md                   # ③ 看对比报告
 
 ```bash
 # Linux / macOS
-cd .github/skills/log-analysis-pipeline-v2
+cd <skills-root>/log-analysis-pipeline-v2
 bash scripts/run-skill.sh zh-CN
 python3 scripts/benchmark.py
 cat reports/benchmark.md

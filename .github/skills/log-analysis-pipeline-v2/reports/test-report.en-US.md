@@ -20,21 +20,21 @@
 | Custom report layout | PASS | Validated configurable report columns via --report-layout |
 | Locale zh-CN | PASS | Validated locale-specific headings: zh-CN |
 | Locale en-US | PASS | Validated locale-specific headings: en-US |
-| Analyze 10 | PASS | 10 records processed in 1.88 ms |
-| Analyze 20 | PASS | 20 records processed in 3.22 ms |
-| Analyze 200 | PASS | 200 records processed in 12.4 ms |
-| Analyze 1000 | PASS | 1000 records processed in 92.51 ms |
-| Analyze 5000 | PASS | 5000 records processed in 1584.82 ms |
+| Analyze 10 | PASS | 10 records processed in 2.04 ms |
+| Analyze 20 | PASS | 20 records processed in 2.46 ms |
+| Analyze 200 | PASS | 200 records processed in 12.34 ms |
+| Analyze 1000 | PASS | 1000 records processed in 96.38 ms |
+| Analyze 5000 | PASS | 5000 records processed in 1573.31 ms |
 
 ## Performance
 
 | Dataset | Elapsed (ms) | Total records | Total groups |
 |---|---:|---:|---:|
-| 10 | 1.88 | 1 | 1 |
-| 20 | 3.22 | 1 | 1 |
-| 200 | 12.4 | 1 | 1 |
-| 1000 | 92.51 | 1 | 1 |
-| 5000 | 1584.82 | 1 | 1 |
+| 10 | 2.04 | 1 | 1 |
+| 20 | 2.46 | 1 | 1 |
+| 200 | 12.34 | 1 | 1 |
+| 1000 | 96.38 | 1 | 1 |
+| 5000 | 1573.31 | 1 | 1 |
 
 ## Conclusion
 

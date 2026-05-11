@@ -8,9 +8,11 @@
 - 希望保留 v1 的所有诉求（多平台启动器、Python/Node 兜底、多语言、单表多行渲染、嵌套明细、性能 fixture）
 - 需要可复现的 v1 vs v2 性能对比报告
 
+> 下文 `<skills-root>` 表示你实际安装 skill 的根目录：GitHub Copilot 用 `.github/skills`、Claude Code 用 `.claude/skills`、OpenCode 用 `.opencode/skills`、Codex 等其他宿主同理。脚本会按 `__file__` 自动定位资源，无需写死路径。
+
 ## 跑通最小例子（Windows）
 ```powershell
-cd .github/skills/log-analysis-pipeline-v2
+cd <skills-root>/log-analysis-pipeline-v2
 python scripts/run-skill-tests.py . zh-CN          # 双语测试
 python scripts/benchmark.py                         # v1 vs v2 对比
 powershell -NoProfile -File scripts/run-skill-tests.ps1 -Locale en-US
@@ -19,7 +21,7 @@ node scripts/run-skill.mjs en-US
 
 ## 跑通最小例子（Linux / macOS）
 ```bash
-cd .github/skills/log-analysis-pipeline-v2
+cd <skills-root>/log-analysis-pipeline-v2
 bash scripts/run-skill.sh zh-CN
 python3 scripts/benchmark.py
 ```
