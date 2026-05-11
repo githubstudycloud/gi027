@@ -921,7 +921,16 @@ def analyze(input_files: list[Path], output_dir: Path,
             report_layout_path: Path | None = None,
             locale_name: str = DEFAULT_LOCALE,
             locale_file: Path | None = None,
-            runtime_name: str = "python") -> dict[str, Any]:
+            runtime_name: str = "python",
+            timestamped_output: bool = False,
+            run_id: str | None = None) -> dict[str, Any]:
+    # Optionally route artifacts into a per-run timestamped subdirectory so
+    # successive `analyze` invocations don't clobber prior reports. The CLI
+    # `analyze` subcommand enables this by default; the in-process test suite
+    # leaves it off to keep fixture paths stable.
+    if timestamped_output:
+        rid = run_id or time.strftime("%Y%m%d-%H%M%S")
+        output_dir = output_dir / rid
     if field_map_path is None:
         field_map_path = _auto_discover_config("field-map.json")
     if dimension_rules_path is None:
@@ -1011,6 +1020,7 @@ def analyze(input_files: list[Path], output_dir: Path,
         "reportPath": str(report_path),
         "normalizedPath": str(normalized_path),
         "summaryPath": str(summary_path),
+        "outputDir": str(output_dir),
         "totalRecords": len(all_records),
         "totalGroups": len(rows),
         "executionGroups": len(exec_rows),
@@ -1267,6 +1277,33 @@ def run_test_suite(skill_root: Path, locale_name: str = DEFAULT_LOCALE) -> dict[
         "headers each on their own line; sections span many lines/blank lines; colons in body and 本次日志对应信息 multi-line value all preserved correctly without garbage keys"
     )
 
+    # Test: timestamped output subdirectory. Calling analyze with
+    # timestamped_output=True must route artifacts into a YYYYMMDD-HHMMSS
+    # subdir under the requested output_dir, so repeated runs don't overwrite.
+    ts_base = output_dir / "timestamped"
+    ts_run_id = "20260511-120000"
+    ts_result = analyze(
+        [loose_txt],
+        ts_base,
+        locale_name=locale_name,
+        runtime_name="python",
+        timestamped_output=True,
+        run_id=ts_run_id,
+    )
+    ts_out_dir = Path(ts_result["outputDir"])
+    ts_ok = (
+        ts_out_dir.name == ts_run_id
+        and ts_out_dir.parent.resolve() == ts_base.resolve()
+        and Path(ts_result["reportPath"]).exists()
+        and Path(ts_result["reportPath"]).parent.resolve() == ts_out_dir.resolve()
+        and re.match(r"^\d{8}-\d{6}$", ts_out_dir.name) is not None
+    )
+    record(
+        "Timestamped output subdirectory",
+        ts_ok,
+        "analyze(timestamped_output=True) writes into <output-dir>/YYYYMMDD-HHMMSS/ so successive runs don't overwrite",
+    )
+
     legacy_typo_json = fixtures_dir / "legacy-key-evdence.json"
     legacy_typo_json.write_text(
         json.dumps(
@@ -1473,10 +1510,23 @@ def main() -> None:
     a.add_argument("--locale", default=DEFAULT_LOCALE)
     a.add_argument("--locale-file")
     a.add_argument("--runtime", default="python")
+    # Timestamped output is the safer default for ad-hoc CLI runs; pass
+    # --no-timestamp to write directly into --output-dir (e.g. for CI fixtures).
+    a.add_argument("--no-timestamp", action="store_true",
+                   help="Write directly into --output-dir (default: append a "
+                        "YYYYMMDD-HHMMSS subdir so successive runs don't overwrite).")
+    a.add_argument("--run-id", default=None,
+                   help="Explicit subdir name to use instead of an auto timestamp "
+                        "(only meaningful without --no-timestamp).")
     g = sub.add_parser("generate")
     g.add_argument("--output-dir", required=True)
     t = sub.add_parser("test")
-    t.add_argument("--skill-root", required=True)
+    # --skill-root defaults to this script's own skill directory so the same
+    # invocation works whether the skill lives under .github/skills/,
+    # .claude/skills/, .opencode/skills/, or anywhere else.
+    t.add_argument("--skill-root", default=None,
+                   help="Skill root directory (default: auto-detected from the "
+                        "location of this script).")
     t.add_argument("--locale", default=DEFAULT_LOCALE)
     args = parser.parse_args()
     if args.cmd == "analyze":
@@ -1489,12 +1539,15 @@ def main() -> None:
             args.locale,
             Path(args.locale_file) if getattr(args, "locale_file", None) else None,
             args.runtime,
+            timestamped_output=not args.no_timestamp,
+            run_id=args.run_id,
         )
         print(json.dumps(res, ensure_ascii=False, indent=2))
     elif args.cmd == "generate":
         print(json.dumps([str(p) for p in generate_fixtures(Path(args.output_dir))], ensure_ascii=False, indent=2))
     else:
-        print(json.dumps(run_test_suite(Path(args.skill_root), args.locale), ensure_ascii=False, indent=2))
+        skill_root = Path(args.skill_root) if args.skill_root else ROOT
+        print(json.dumps(run_test_suite(skill_root, args.locale), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

@@ -25,15 +25,19 @@ user-invocable: true
 字段映射支持别名扩展：见 [assets/field-map.example.json](./assets/field-map.example.json)。
 
 ## 30 秒上手
-```powershell
-# 自检 + 生成样例 + 跑性能 + 写测试报告（一体化）
-python .github/skills/log-analyzer/scripts/log_analysis_core.py test --skill-root .github/skills/log-analyzer --locale en-US
 
-# 分析自己的日志
-python .github/skills/log-analyzer/scripts/log_analysis_core.py analyze `
+> 路径示例使用 `.github/skills/...`；如果你把这个 skill 装到 `.claude/skills/`、`.opencode/skills/` 或任意其他位置，**不用改命令**——脚本会自动从自身位置推导 skill 根目录。
+
+```powershell
+# 自检 + 生成样例 + 跑性能 + 写测试报告（一体化，--skill-root 可省略）
+python <skills-root>/log-analyzer/scripts/log_analysis_core.py test --locale en-US
+
+# 分析自己的日志（默认会把产物写到 <output-dir>/YYYYMMDD-HHMMSS/，不会覆盖历史）
+python <skills-root>/log-analyzer/scripts/log_analysis_core.py analyze `
   --input-files path\to\case-1.json path\to\case-1.txt `
-  --output-dir .github/skills/log-analyzer/reports/output `
+  --output-dir reports/output `
   --locale zh-CN
+# 如需写入固定目录（CI 等），加 --no-timestamp；或用 --run-id <name> 自定义子目录名
 ```
 
 ## 配置化报告列（同义兼容）

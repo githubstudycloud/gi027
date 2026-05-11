@@ -83,7 +83,7 @@ user-invocable: true
 - `.example.json` 留作模板，仍不会被加载。
 
 ## 内置一体化测试套件
-`python scripts/log_analysis_core_v2.py test --skill-root . --locale en-US` 会一次性：
+`python scripts/log_analysis_core_v2.py test --locale en-US` 会一次性：
 1. 生成 10 / 20 / 200 / 1000 / 5000 五档样例（性能基准数据来源）；
 2. 跑结构化 JSON+TXT 成对合并校验（含 `problem_subcategory` 与 `key_evidence`）；
 3. 跑历史拼写 `key_evdence` 兼容校验；
@@ -148,6 +148,7 @@ user-invocable: true
 - `v2.2.0`：配置文件自动发现（`assets/*.json` > `temp/*.json` > 内置默认），AI 自然语言触发时无需传参。
 - `v2.3.0`：TXT 解析器支持「用例失败根因分析结果」编号分段格式；同 stem 下 JSON+TXT 共存时优先 JSON、忽略 TXT，消除报告中的 N/A 行。
 - `v2.4.0`：TXT 宽松格式鲁棒解析——`用例名称`/`分析时间` 可各占一行；`(3)根因诊断结论` 起任意 section 正文允许多行、空行、不规则空白；正文中的冒号（如 `10:00:11`、`经查链路：…`、`504 Gateway Timeout @ 10:00:11`）不会被误识别为 K:V；`(4)关键佐证信息` 段内仅识别 `参考文档特征描述`/`本次日志对应信息` 两个子项 key，且子项 value 支持跨多行；其他段整段保留。
+- `v2.5.0`：跨工具适配——`test` 子命令的 `--skill-root` 改为可选，默认从脚本自身位置（`__file__`）推导，因此放在 `.github/skills/`、`.claude/skills/`、`.opencode/skills/` 或任何其他目录都能直接 `python scripts/log_analysis_core_v2.py test --locale zh-CN` 跑通，无需关心宿主工具。`analyze` 子命令默认把产物写入 `<output-dir>/YYYYMMDD-HHMMSS/` 时间戳子目录，避免重复运行覆盖历史报告；如需关闭加 `--no-timestamp`，或用 `--run-id <name>` 指定固定子目录名。返回 JSON 新增 `outputDir` 字段方便定位实际落盘路径。
 
 ## 关联的可分发骨架
 如果你想把这套能力直接发给同事使用而不用关心测试/基准的细节，可使用零版本号的轻量骨架
