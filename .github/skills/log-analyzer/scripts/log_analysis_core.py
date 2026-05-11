@@ -369,7 +369,23 @@ def _parse_json_payload(raw: Any) -> list[Any]:
 
 _TXT_TITLE_RE = re.compile(r"^[ \t]*用例失败根因分析结果[ \t]*$", re.MULTILINE)
 _TXT_NUMBERED_HEADER_RE = re.compile(r"^[ \t]*[\(（]\s*(\d+)\s*[\)）]\s*([^\s:：]+(?:[^\s:：]*)?)[ \t]*$")
+# Header K:V matcher: a single "<key>: <value>" pair on a line. Multiple pairs
+# on one line are separated by 2+ spaces or a TAB to avoid mis-matching colons
+# inside values (e.g. "10:00:11", "经查链路：客户端 -> SLB").
 _TXT_HEADER_KV_RE = re.compile(r"([^\s:：]+)\s*[:：]\s*(.+?)(?=(?:\s{2,}|\t+)[^\s:：]+\s*[:：]|$)")
+# Known header field names that should be extracted from the top block (before
+# the first "(N)..." section). We only treat a line as a header K:V pair if its
+# key matches one of these — this avoids consuming free-form text with colons
+# (e.g. URLs, timestamps) as keys.
+_TXT_HEADER_KEYS = (
+    "用例名称", "分析时间", "case_name", "analysis_time",
+    "device_sn", "device_type", "platform_version", "hy_version",
+    "设备SN", "设备类型", "平台版本", "HY版本",
+)
+# Sub-keys that may appear inside the "(4) 关键佐证信息" section. Each may span
+# multiple lines (the value continues until the next sub-key or end of section).
+_KEY_EVIDENCE_SECTION_NAMES = ("关键佐证信息", "key_evidence", "key_evdence")
+_KEY_EVIDENCE_SUBKEYS = ("参考文档特征描述", "本次日志对应信息")
 
 
 def _looks_like_numbered_format(text: str) -> bool:
@@ -378,23 +394,84 @@ def _looks_like_numbered_format(text: str) -> bool:
     return bool(re.search(r"[\(（]\s*1\s*[\)）]\s*问题大类", text))
 
 
-def _parse_txt_numbered_block(block: str) -> dict[str, str]:
-    """Parse one record in the new numbered-section format.
+def _try_match_header_kv(line: str) -> list[tuple[str, str]]:
+    """Return [(key, value), ...] only if every match's key is in _TXT_HEADER_KEYS.
 
-    Layout (Chinese):
+    This is intentionally conservative: free-form lines like "经查链路：客户端 -> …"
+    contain a colon but their leading token is not a registered header key, so
+    the whole line is rejected instead of producing a garbage key.
+    """
+    pairs: list[tuple[str, str]] = []
+    for km in _TXT_HEADER_KV_RE.finditer(line.strip()):
+        k = km.group(1).strip()
+        v = km.group(2).strip()
+        if k not in _TXT_HEADER_KEYS:
+            return []
+        pairs.append((k, v))
+    return pairs
+
+
+def _split_key_evidence_subitems(text: str) -> dict[str, str]:
+    """Split the 关键佐证信息 section body into its known sub-keys.
+
+    Handles:
+        参考文档特征描述: 单行值
+        参考文档特征描述:
+          多行值...
+          (任意空行/缩进)
+        本次日志对应信息:
+          多行值...
+    Values continue until the next known sub-key or end of section.
+    """
+    out: dict[str, str] = {}
+    current: str | None = None
+    buf: list[str] = []
+
+    def flush() -> None:
+        nonlocal current, buf
+        if current is not None:
+            v = "\n".join(buf).strip()
+            if v and current not in out:
+                out[current] = v
+        buf = []
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        matched_subkey: str | None = None
+        rest = ""
+        for sk in _KEY_EVIDENCE_SUBKEYS:
+            if stripped.startswith(sk):
+                tail = stripped[len(sk):].lstrip()
+                if tail.startswith(":") or tail.startswith("："):
+                    matched_subkey = sk
+                    rest = tail[1:].lstrip()
+                    break
+        if matched_subkey:
+            flush()
+            current = matched_subkey
+            if rest:
+                buf.append(rest)
+            continue
+        if current is not None:
+            buf.append(line)
+    flush()
+    return out
+
+
+def _parse_txt_numbered_block(block: str) -> dict[str, str]:
+    """Parse one record in the numbered-section format.
+
+    Layout (Chinese, see SKILL.md for the spec):
         用例失败根因分析结果        (title, optional)
-        用例名称: <name>    分析时间: <time>
+        用例名称: <name>            (one per line OR on the same line)
+        分析时间: <time>
         (1)问题大类
-        <content...>
-        (2)问题小类
-        <content...>
-        (3)根因诊断结论
+        <free text, may span many lines and blank lines>
         ...
         (4)关键佐证信息
-        参考文档特征描述: <...>
-        本次日志对应信息: <...>
-        (5)问题修复动作
-        (6)问题修复结论
+        参考文档特征描述: <... possibly multi-line>
+        本次日志对应信息: <... possibly multi-line>
+        ...
         (7)问题重跑结论
     """
     rec: dict[str, str] = {}
@@ -407,18 +484,10 @@ def _parse_txt_numbered_block(block: str) -> dict[str, str]:
             text = "\n".join(buf).strip()
             if text:
                 rec[current_key] = text
-                # If this section has nested K:V lines (e.g. 关键佐证信息), expose them
-                # as their own fields too so alias resolution can pick them up.
-                for sub_line in text.splitlines():
-                    si = sub_line.find(":")
-                    sj = sub_line.find("：")
-                    if si == -1 and sj == -1:
-                        continue
-                    sidx = si if (sj == -1 or (si != -1 and si < sj)) else sj
-                    sk = sub_line[:sidx].strip()
-                    sv = sub_line[sidx + 1:].strip()
-                    if sk and sv and sk not in rec:
-                        rec[sk] = sv
+                if current_key in _KEY_EVIDENCE_SECTION_NAMES:
+                    for sk, sv in _split_key_evidence_subitems(text).items():
+                        if sk not in rec:
+                            rec[sk] = sv
         buf = []
 
     for line in block.splitlines():
@@ -435,10 +504,10 @@ def _parse_txt_numbered_block(block: str) -> dict[str, str]:
             current_key = m.group(2).strip()
             continue
         if current_key is None:
-            # Header K:V line(s) like "用例名称: xxx    分析时间: yyy"
-            for km in _TXT_HEADER_KV_RE.finditer(stripped):
-                k = km.group(1).strip()
-                v = km.group(2).strip()
+            # Header block (before the first numbered section): only consume
+            # lines whose leading token is a registered header key.
+            pairs = _try_match_header_kv(stripped)
+            for k, v in pairs:
                 if k:
                     rec[k] = v
         else:
@@ -1121,6 +1190,81 @@ def run_test_suite(skill_root: Path, locale_name: str = DEFAULT_LOCALE) -> dict[
         "Numbered TXT format (用例失败根因分析结果)",
         numbered_ok,
         "TXT-only numbered-section input produces a complete row, no N/A on category/subcategory/rootCause/evidence/fix/rerun"
+    )
+
+    # Loose / messy TXT format: 用例名称 与 分析时间 各自一行；多 section 多行 +
+    # 含冒号正文 (时间戳 10:00:11, 中文全角冒号"经查链路：") 不应被误识别为 K:V；
+    # 关键佐证信息 子项 (本次日志对应信息) 单独占行、值跨多行。
+    loose_txt = fixtures_dir / "numbered-loose-format-case.txt"
+    loose_txt.write_text(
+        "\n".join([
+            "用例失败根因分析结果",
+            "",
+            "用例名称: Loose-Timeout-002",
+            "分析时间: 2026-05-10 11:22:33",
+            "",
+            "(1)问题大类",
+            "Network",
+            "",
+            "(2)问题小类",
+            "Timeout",
+            "",
+            "(3)根因诊断结论",
+            "突发流量下上游网关超时，5s 超时阈值不足以覆盖 p99=12.4s 的尾延迟。",
+            "具体表现为 10:00:11 开始，前端登录接口持续抛出 HTTP 504。",
+            "",
+            "经查链路：客户端 -> SLB -> 网关 -> 鉴权 -> 用户库；其中网关到鉴权环节的 RT",
+            "异常升高至 8~13s，最终触发上游 5s 超时熔断。",
+            "",
+            "(4)关键佐证信息",
+            "参考文档特征描述: gw-logs-20260509.txt 中连续出现 504 Gateway Timeout；",
+            "  另见 metrics.csv 中 p99 异常升至 12.4s（前 24h 基线 1.2s）。",
+            "",
+            "本次日志对应信息:",
+            "  504 Gateway Timeout @ 10:00:11",
+            "  同一窗口内 p99=12.4s，QPS=2300（基线 800）",
+            "",
+            "(5)问题修复动作",
+            "1) 将上游超时从 5s 提升至 15s",
+            "2) 启用 retry-once 重试策略，幂等接口才生效",
+            "",
+            "(6)问题修复结论",
+            "线上灰度 30 分钟，无 504；",
+            "全量发布后连续 2h 监控，p99 回落至 1.4s。",
+            "",
+            "(7)问题重跑结论",
+            "PASS",
+        ]),
+        encoding="utf-8",
+    )
+    loose_result = analyze(
+        [loose_txt],
+        output_dir / "numbered-loose",
+        locale_name=locale_name,
+        runtime_name="python",
+    )
+    loose_normalized = json.loads(Path(loose_result["normalizedPath"]).read_text(encoding="utf-8"))
+    loose_rec = loose_normalized[0] if loose_normalized else {}
+    loose_evidence = loose_rec.get("keyEvidence", "")
+    loose_ok = (
+        loose_result["totalRecords"] == 1
+        and loose_rec.get("useCaseName") == "Loose-Timeout-002"
+        and loose_rec.get("issueCategory") == "Network"
+        and loose_rec.get("issueSubcategory") == "Timeout"
+        and "10:00:11" in loose_rec.get("rootCauseConclusion", "")
+        and "经查链路" in loose_rec.get("rootCauseConclusion", "")
+        and "504 Gateway Timeout" in loose_evidence
+        and "p99=12.4s，QPS=2300" in loose_evidence
+        and "retry-once" in loose_rec.get("fixAction", "")
+        and "灰度" in loose_rec.get("fixConclusion", "")
+        and loose_rec.get("rerunConclusion") == "PASS"
+        # Make sure no garbage key like "10" / "经查链路" / "504 Gateway Timeout @ 10" leaked.
+        and not any(k.startswith("10") or k.startswith("504") or "经查链路" in k for k in loose_rec.keys())
+    )
+    record(
+        "Numbered TXT loose format (multi-line sections, colons in body)",
+        loose_ok,
+        "headers each on their own line; sections span many lines/blank lines; colons in body and 本次日志对应信息 multi-line value all preserved correctly without garbage keys"
     )
 
     legacy_typo_json = fixtures_dir / "legacy-key-evdence.json"

@@ -1,17 +1,39 @@
 用例失败根因分析结果
-用例名称: Cache-Memory-Leak-007    分析时间: 2026-05-09 11:05:00
+
+用例名称: Cache-Memory-Leak-007
+分析时间: 2026-05-09 11:05:00
+
 (1)问题大类
 Stability
+
 (2)问题小类
 Memory
+
 (3)根因诊断结论
 本地缓存淘汰策略未触发，堆内存持续增长至 1.8G 后 OOM。
+现场堆 dump 显示 HashMap<String,UserSession> 占用 92% 老年代，
+且未配置 maximumSize / expireAfterWrite，等同于无界缓存。
+
+GC 日志显示 11:00 后每 3~5 分钟发生一次 Full GC (Allocation Failure)，
+回收量逐次下降直到完全无法分配，进程被 OOMKilled。
+
 (4)关键佐证信息
-参考文档特征描述: heap-dump-20260509.hprof 显示老年代 1.8G，绝大部分对象为本地 Cache 条目
-本次日志对应信息: java.lang.OutOfMemoryError: Java heap space；gc.log 中频繁 Full GC (Allocation Failure)
+参考文档特征描述:
+  heap-dump-20260509.hprof 显示老年代 1.8G，
+  绝大部分对象为本地 Cache 条目（UserSession 数 ~ 1.2M）。
+
+本次日志对应信息:
+  java.lang.OutOfMemoryError: Java heap space
+  gc.log: Full GC (Allocation Failure) 1768M->1768M(1800M), 5.42s
+
 (5)问题修复动作
-将本地缓存替换为 Caffeine，配置 maximumSize=10000 + expireAfterWrite=10m
+1) 将本地缓存替换为 Caffeine
+2) 配置 maximumSize=10000 + expireAfterWrite=10m
+3) 增加缓存命中率/驱逐数 metrics 上报
+
 (6)问题修复结论
-24h soak 测试，堆稳定在 600M，无 Full GC
+24h soak 测试，堆稳定在 600M，无 Full GC；
+缓存命中率 94%，平均驱逐 ~120/min。
+
 (7)问题重跑结论
 PASS
