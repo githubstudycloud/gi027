@@ -1,0 +1,7 @@
+# Path to your idea64.exe
+# - First non-empty, non-comment line is used as the path.
+# - Comment lines start with #.
+# - Rename this file to .idea-path.txt (drop the .sample suffix) to enable.
+# Examples:
+# C:\Program Files\JetBrains\IntelliJ IDEA 2024.3\bin\idea64.exe
+# D:\JetBrains\IntelliJ IDEA 2025.1\bin\idea64.exe

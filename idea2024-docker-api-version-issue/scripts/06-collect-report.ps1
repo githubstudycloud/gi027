@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    打包诊断信息为 zip，便于反馈给同事或提 JetBrains issue。
+    Package diagnose output + idea.log + docker info into a zip.
 
 .PARAMETER OutDir
-    zip 输出目录，默认当前目录。
+    Output directory for the zip (default: current dir).
 #>
 [CmdletBinding()]
 param(
@@ -16,10 +16,8 @@ New-Item -ItemType Directory -Path $work -Force | Out-Null
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# 运行诊断
 & (Join-Path $scriptDir '01-diagnose.ps1') -OutFile (Join-Path $work 'diagnose.txt') | Out-Null
 
-# 拷贝最近的 idea.log
 $logRoots = @("$env:APPDATA\JetBrains", "$env:LOCALAPPDATA\JetBrains")
 $idx = 0
 foreach ($root in $logRoots) {
@@ -33,7 +31,6 @@ foreach ($root in $logRoots) {
     }
 }
 
-# docker info 详细
 try {
     docker info 2>&1 | Out-File -FilePath (Join-Path $work 'docker-info.txt') -Encoding UTF8
 } catch {}
@@ -42,5 +39,5 @@ $zip = Join-Path $OutDir "idea-docker-report-$ts.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path (Join-Path $work '*') -DestinationPath $zip -Force
 
-Write-Host "`n✅ 已生成: $zip" -ForegroundColor Green
-Write-Host "   临时目录: $work (可手动删除)" -ForegroundColor DarkGray
+Write-Host "`n[OK] Generated: $zip" -ForegroundColor Green
+Write-Host "  Temp dir (safe to delete): $work" -ForegroundColor DarkGray

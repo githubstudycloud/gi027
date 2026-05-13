@@ -1,0 +1,6 @@
+# Local IDEA path config (do not commit user-specific paths)
+scripts/.idea-path.txt
+
+# Generated reports
+scripts/diagnose.txt
+idea-docker-report-*.zip

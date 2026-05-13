@@ -1,16 +1,16 @@
 <#
 .SYNOPSIS
-    诊断 IDEA 2024 连接 Docker 报 "client version 1.24 is too old" 问题。
+    Diagnose IDEA + Docker "client version 1.24 is too old" issue.
 
 .DESCRIPTION
-    采集以下信息：
-      - Docker 客户端 / 服务端版本与 MinAPIVersion
-      - DOCKER_API_VERSION 环境变量（进程 / 用户 / 机器三级）
-      - IDEA / Toolbox 进程
-      - 最近的 idea.log 中关键报错行
+    Collects:
+      - Docker client/server version and MinAPIVersion
+      - DOCKER_API_VERSION env var (Process / User / Machine)
+      - IDEA / Toolbox processes
+      - Recent idea.log entries matching the known error
 
 .PARAMETER OutFile
-    把结果同时写入文件（默认仅打印）。
+    Also write the report to this file (optional).
 
 .EXAMPLE
     .\01-diagnose.ps1
@@ -24,7 +24,7 @@ param(
 $ErrorActionPreference = 'Continue'
 $lines = New-Object System.Collections.Generic.List[string]
 
-function Write-Section($title) {
+function Add-Section($title) {
     $sep = '=' * 60
     $lines.Add('')
     $lines.Add($sep)
@@ -32,29 +32,28 @@ function Write-Section($title) {
     $lines.Add($sep)
 }
 
-Write-Section "Docker 版本"
+Add-Section "Docker Version"
 try {
     $dockerVer = docker version 2>&1
     $lines.Add(($dockerVer -join "`n"))
 
     $fmt = docker version --format 'Client: {{.Client.Version}} | ServerAPI: {{.Server.APIVersion}} | MinAPI: {{.Server.MinAPIVersion}}' 2>&1
     $lines.Add('')
-    $lines.Add(">>> 摘要: $fmt")
+    $lines.Add(">>> Summary: $fmt")
 
-    # 解析 Min API
     if ($fmt -match 'MinAPI:\s*([\d.]+)') {
         $minApi = [version]$Matches[1]
         if ($minApi -ge [version]'1.44') {
-            $lines.Add(">>> ⚠️ 命中本问题：Server 最低要求 $minApi >= 1.44，旧 docker-java 客户端 (1.24) 会被拒绝。")
+            $lines.Add(">>> [HIT] Server MinAPI = $minApi (>= 1.44). Old docker-java (1.24) will be rejected.")
         } else {
-            $lines.Add(">>> ✅ Server MinAPI=$minApi < 1.44，理论上不应报 1.24 too old。请检查 IDEA 插件是否硬编码错误版本。")
+            $lines.Add(">>> [INFO] Server MinAPI = $minApi (< 1.44). Should not trigger '1.24 too old'. Check IDEA plugin.")
         }
     }
 } catch {
-    $lines.Add("docker 命令执行失败: $_")
+    $lines.Add("docker command failed: $_")
 }
 
-Write-Section "DOCKER_API_VERSION 环境变量"
+Add-Section "DOCKER_API_VERSION Environment Variable"
 $envUser    = [Environment]::GetEnvironmentVariable('DOCKER_API_VERSION','User')
 $envMachine = [Environment]::GetEnvironmentVariable('DOCKER_API_VERSION','Machine')
 $envProc    = $env:DOCKER_API_VERSION
@@ -63,20 +62,20 @@ $lines.Add("User   : $envUser")
 $lines.Add("Machine: $envMachine")
 
 if (-not $envUser -and -not $envMachine) {
-    $lines.Add(">>> 未设置；建议执行 .\02-set-api-version.ps1 -Version 1.44 -Scope User")
+    $lines.Add(">>> Not set. Suggest: .\02-set-api-version.ps1 -Version 1.44 -Scope User")
 }
 
-Write-Section "IDEA / Toolbox 进程"
+Add-Section "IDEA / Toolbox Processes"
 $procs = Get-Process -ErrorAction SilentlyContinue |
     Where-Object { $_.ProcessName -match '^(idea64|idea|jetbrains-toolbox|fsnotifier)$' } |
     Select-Object Id, ProcessName, StartTime, Path
 if ($procs) {
     $lines.Add(($procs | Format-Table -AutoSize | Out-String).Trim())
 } else {
-    $lines.Add("(未发现 IDEA 相关进程)")
+    $lines.Add("(no IDEA-related processes found)")
 }
 
-Write-Section "idea.log 最近的 DockerException"
+Add-Section "Recent idea.log DockerException entries"
 $logRoots = @(
     "$env:APPDATA\JetBrains",
     "$env:LOCALAPPDATA\JetBrains"
@@ -88,25 +87,25 @@ $logs = foreach ($root in $logRoots) {
 }
 
 if (-not $logs) {
-    $lines.Add("(未找到 idea.log)")
+    $lines.Add("(idea.log not found)")
 } else {
     foreach ($log in $logs | Sort-Object LastWriteTime -Descending | Select-Object -First 3) {
         $lines.Add("--- $($log.FullName) (LastWrite=$($log.LastWriteTime)) ---")
-        $hit = Select-String -Path $log.FullName -Pattern 'client version .* is too old|DockerException|Minimum supported API version' -SimpleMatch:$false -ErrorAction SilentlyContinue |
+        $hit = Select-String -Path $log.FullName -Pattern 'client version .* is too old|DockerException|Minimum supported API version' -ErrorAction SilentlyContinue |
             Select-Object -Last 20
         if ($hit) {
             $lines.Add(($hit | ForEach-Object { "L$($_.LineNumber): $($_.Line.Trim())" }) -join "`n")
         } else {
-            $lines.Add("  (无关键字命中)")
+            $lines.Add("  (no matching lines)")
         }
     }
 }
 
-Write-Section "结论建议"
+Add-Section "Recommendation"
 $lines.Add(@"
-1) 优先升级 IDEA 到 2024.3.x 或 2025.1+（彻底修复内置 docker-java 版本）。
-2) 临时绕过：.\02-set-api-version.ps1 -Version 1.44 -Scope User，然后 .\04-restart-idea.ps1。
-3) 如仍报错，启用 Docker Desktop TCP 2375 并在 IDEA 中切换连接方式。
+1) Preferred: upgrade IDEA to 2024.3.x or 2025.1+.
+2) Workaround: .\02-set-api-version.ps1 -Version 1.44 -Scope User; then .\04-restart-idea.ps1
+3) If still failing: enable Docker Desktop TCP 2375 and switch IDEA connection.
 "@)
 
 $output = $lines -join "`n"
@@ -114,5 +113,5 @@ Write-Output $output
 
 if ($OutFile) {
     $output | Out-File -FilePath $OutFile -Encoding UTF8
-    Write-Host "`n已写入 $OutFile" -ForegroundColor Green
+    Write-Host "`nReport written to: $OutFile" -ForegroundColor Green
 }

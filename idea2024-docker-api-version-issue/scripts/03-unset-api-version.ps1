@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    移除 DOCKER_API_VERSION 环境变量。
+    Remove DOCKER_API_VERSION environment variable.
 
 .PARAMETER Scope
-    User (默认) / Machine / All
+    User (default) / Machine / All
 #>
 [CmdletBinding()]
 param(
@@ -17,12 +17,12 @@ function Remove-One([string]$s) {
             [Security.Principal.WindowsBuiltInRole]::Administrator
         )
         if (-not $isAdmin) {
-            Write-Warning "跳过 Machine 级（需管理员）"
+            Write-Warning "Skipping Machine scope (admin required)."
             return
         }
     }
     [Environment]::SetEnvironmentVariable('DOCKER_API_VERSION', $null, $s)
-    Write-Host "已移除 $s 级 DOCKER_API_VERSION" -ForegroundColor Green
+    Write-Host "Removed $s scope DOCKER_API_VERSION" -ForegroundColor Green
 }
 
 if ($Scope -eq 'All') {
@@ -33,4 +33,4 @@ if ($Scope -eq 'All') {
 }
 
 Remove-Item Env:DOCKER_API_VERSION -ErrorAction SilentlyContinue
-Write-Host "当前进程也已清空。请重启 IDEA 生效。" -ForegroundColor Yellow
+Write-Host "Current process env also cleared. Restart IDEA to take effect." -ForegroundColor Yellow

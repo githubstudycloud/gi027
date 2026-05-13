@@ -1,11 +1,6 @@
 <#
 .SYNOPSIS
-    校验 Docker Desktop TCP 2375 端点是否可用；若不可用给出启用指引。
-
-.DESCRIPTION
-    很多 npipe 路径下的版本兼容问题可以通过 TCP 绕过。
-    本脚本不会自动改动 Docker Desktop 配置（避免误开放未授权端口），
-    只做检测和指引。
+    Check if Docker Desktop TCP 2375 endpoint is available and give guidance.
 
 .EXAMPLE
     .\05-enable-tcp.ps1
@@ -13,39 +8,40 @@
 
 $ErrorActionPreference = 'Continue'
 
-Write-Host "检测 tcp://localhost:2375 ..." -ForegroundColor Cyan
+Write-Host "Checking tcp://localhost:2375 ..." -ForegroundColor Cyan
 $test = Test-NetConnection -ComputerName 'localhost' -Port 2375 -WarningAction SilentlyContinue
 
 if ($test.TcpTestSucceeded) {
-    Write-Host "✅ TCP 2375 已开放。" -ForegroundColor Green
+    Write-Host "[OK] TCP 2375 is open." -ForegroundColor Green
 
-    Write-Host "`n尝试通过 TCP 调用 Docker API ..." -ForegroundColor Cyan
+    Write-Host "`nCalling Docker API over TCP ..." -ForegroundColor Cyan
     try {
         $resp = Invoke-RestMethod -Uri 'http://localhost:2375/version' -TimeoutSec 5
         Write-Host "Server API: $($resp.ApiVersion)  /  Min: $($resp.MinAPIVersion)" -ForegroundColor Green
     } catch {
-        Write-Warning "TCP 端口开放但 /version 调用失败: $_"
+        Write-Warning "TCP open but /version call failed: $_"
     }
 
     Write-Host @"
 
-下一步在 IDEA 配置：
-  Settings → Build, Execution, Deployment → Docker → +
-  选 'TCP socket'，地址填: tcp://localhost:2375
-  点 Test connection，看到 'Connection successful' 即可。
+Next step in IDEA:
+  Settings -> Build, Execution, Deployment -> Docker -> +
+  Choose 'TCP socket', set: tcp://localhost:2375
+  Click 'Test connection' and look for 'Connection successful'.
 "@ -ForegroundColor Yellow
 
 } else {
-    Write-Warning "TCP 2375 未开放。"
+    Write-Warning "TCP 2375 is NOT open."
     Write-Host @"
 
-启用步骤：
-  1. 打开 Docker Desktop
-  2. Settings → General
-  3. 勾选: ☑ Expose daemon on tcp://localhost:2375 without TLS
+How to enable:
+  1. Open Docker Desktop
+  2. Settings -> General
+  3. Check: [x] Expose daemon on tcp://localhost:2375 without TLS
   4. Apply & Restart
-  5. 重跑本脚本验证
+  5. Re-run this script to verify
 
-⚠️  安全提醒：2375 未加密，仅在本机开发使用，切勿在公网暴露！
+[!] Security: 2375 is unencrypted. Use only on localhost during dev.
+    Do NOT expose to the public network.
 "@ -ForegroundColor Yellow
 }
